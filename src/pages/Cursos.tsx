@@ -5,6 +5,7 @@ import {
   isVisivel,
   isAtivoNoSite,
   vagasRestantes,
+  nomeCurto,
   fmtDataCurta,
   DIAS_LABEL,
   PERIODOS_LABEL,
@@ -13,6 +14,7 @@ import {
   type StatusCurso,
 } from "@/lib/cursos";
 import { CURSO_FALLBACKS } from "@/lib/refImages";
+import LoadingLogo from "@/components/LoadingLogo";
 
 type Filtro = "todos" | Exclude<StatusCurso, "finalizado">;
 
@@ -27,19 +29,28 @@ export default function Cursos() {
   const [cursos, setCursos] = useState<CursoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<Filtro>("todos");
+  const [busca, setBusca] = useState("");
 
   useEffect(() => {
+    let ativo = true;
     fetchCursos().then((data) => {
+      if (!ativo) return;
       setCursos(data.filter(isVisivel).filter(isAtivoNoSite));
       setLoading(false);
     });
+    return () => {
+      ativo = false;
+    };
   }, []);
 
-  const filtrados = useMemo(
-    () =>
-      cursos.filter((c) => filtro === "todos" || statusDe(c) === filtro),
-    [cursos, filtro]
-  );
+  const filtrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return cursos.filter((c) => {
+      if (filtro !== "todos" && statusDe(c) !== filtro) return false;
+      if (termo && !c.titulo.toLowerCase().includes(termo)) return false;
+      return true;
+    });
+  }, [cursos, filtro, busca]);
 
   return (
     <div className="mx-auto max-w-container px-6 pb-20 pt-14">
@@ -72,12 +83,25 @@ export default function Cursos() {
         </div>
       </div>
 
+      <div className="mt-6 flex justify-center">
+        <input
+          id="busca-curso"
+          type="search"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Buscar curso pelo nome…"
+          aria-label="Buscar curso pelo nome"
+          className="w-full max-w-md rounded-xl border-[1.5px] border-black/[.12] bg-white px-4 py-[13px] text-[15px] text-ink outline-none transition-colors placeholder:text-ink-2/70 focus:border-azul"
+        />
+      </div>
+
       {loading ? (
-        <p className="mt-8 text-ink-2">Carregando cursos…</p>
+        <LoadingLogo label="Carregando cursos…" />
       ) : filtrados.length === 0 ? (
         <p className="mt-8 text-ink-2">
-          Nenhum curso {filtro !== "todos" ? "nesta categoria" : "disponível"} no
-          momento.
+          {busca.trim()
+            ? `Nenhum curso encontrado para “${busca.trim()}”.`
+            : `Nenhum curso ${filtro !== "todos" ? "nesta categoria" : "disponível"} no momento.`}
         </p>
       ) : (
         <div className="mt-7 grid grid-cols-1 gap-[22px] sm:grid-cols-2 lg:grid-cols-3">
@@ -118,7 +142,11 @@ function CursoCard({ curso, idx }: { curso: CursoRow; idx: number }) {
         <div className="font-display text-[19px] font-extrabold leading-[1.25]">
           {curso.titulo}
         </div>
-        <div className="text-[13.5px] text-ink-2">Prof. {curso.professor}</div>
+        <div className="text-[13.5px] text-ink-2">
+          {curso.parceiro_id
+            ? `Em parceria com ${curso.parceiros?.nome ?? "parceiro"}`
+            : `Prof. ${nomeCurto(curso.professor)}`}
+        </div>
         <div className="flex flex-wrap gap-1.5">
           <Chip>📅 {dias}</Chip>
           <Chip>🕐 {PERIODOS_LABEL[curso.periodo]}</Chip>

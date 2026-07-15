@@ -21,6 +21,10 @@ export interface CursoRow {
   imagem_url?: string | null;
   // Coluna nova (opcional até a migração rodar). undefined => visível.
   visivel_site?: boolean | null;
+  // Cursos de percurso não entram na listagem pública.
+  percurso_id?: string | null;
+  parceiro_id?: string | null;
+  parceiros?: { id: string; nome: string } | null;
 }
 
 export type StatusCurso =
@@ -84,6 +88,13 @@ export function vagasRestantes(c: CursoRow): number {
   return Math.max((c.vagas ?? 0) - (c.qtd_alunos_iniciaram ?? 0), 0);
 }
 
+/** Retorna só o primeiro e o último nome (ex.: "Mary … Miné" → "Mary Miné"). */
+export function nomeCurto(nome: string): string {
+  const partes = nome.trim().split(/\s+/).filter(Boolean);
+  if (partes.length <= 2) return partes.join(" ");
+  return `${partes[0]} ${partes[partes.length - 1]}`;
+}
+
 /** Formata "2026-08-03" como "03/08/26". */
 export function fmtDataCurta(iso: string): string {
   if (!iso) return "";
@@ -100,27 +111,43 @@ export function fmtDiaMes(iso: string): string {
 }
 
 /**
- * Busca os cursos ativos (não cancelados) do ano corrente.
+ * Busca os cursos ativos (não cancelados) do ano corrente,
+ * excluindo cursos vinculados a percursos (`percurso_id`).
  * O filtro de visibilidade é aplicado em memória para funcionar mesmo
  * antes da coluna `visivel_site` existir.
+ *
+ * Deduplica chamadas concorrentes (ex.: React Strict Mode no dev)
+ * para que só haja uma requisição HTTP em voo.
  */
-export async function fetchCursos(): Promise<CursoRow[]> {
+let cursosInflight: Promise<CursoRow[]> | null = null;
+
+export function fetchCursos(): Promise<CursoRow[]> {
+  if (cursosInflight) return cursosInflight;
+
   const ano = new Date().getFullYear();
   const hoje = hojeISO();
-  const { data, error } = await supabase
-    .from("cursos")
-    .select("*")
-    .eq("is_cancelado", false)
-    .gte("inicio", `${ano}-01-01`)
-    .lte("inicio", `${ano}-12-31`)
-    .gte("fim", hoje)
-    .order("inicio", { ascending: true });
 
-  if (error) {
-    console.error("Erro ao buscar cursos:", error.message);
-    return [];
-  }
-  return (data ?? []) as CursoRow[];
+  cursosInflight = (async () => {
+    const { data, error } = await supabase
+      .from("cursos")
+      .select("*, parceiros(id, nome)")
+      .eq("is_cancelado", false)
+      .is("percurso_id", null)
+      .gte("inicio", `${ano}-01-01`)
+      .lte("inicio", `${ano}-12-31`)
+      .gte("fim", hoje)
+      .order("inicio", { ascending: true });
+
+    if (error) {
+      console.error("Erro ao buscar cursos:", error.message);
+      return [];
+    }
+    return ((data ?? []) as CursoRow[]).filter((c) => !c.percurso_id);
+  })().finally(() => {
+    cursosInflight = null;
+  });
+
+  return cursosInflight;
 }
 
 /** Visível no site público: coluna ausente/null/true => visível; só oculta quando false. */

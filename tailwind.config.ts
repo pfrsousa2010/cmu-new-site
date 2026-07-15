@@ -55,6 +55,15 @@ export default {
         modal: "0 20px 60px rgba(0,0,0,.25)",
         toast: "0 8px 24px rgba(0,0,0,.25)",
       },
+      keyframes: {
+        "logo-pulse": {
+          "0%, 100%": { transform: "scale(0.92)", opacity: "0.75" },
+          "50%": { transform: "scale(1.08)", opacity: "1" },
+        },
+      },
+      animation: {
+        "logo-pulse": "logo-pulse 1.4s ease-in-out infinite",
+      },
     },
   },
   plugins: [],
