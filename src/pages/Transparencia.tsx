@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import LoadingLogo from "@/components/LoadingLogo";
 import {
   fetchArquivos,
   urlArquivo,
@@ -36,7 +37,7 @@ export default function Transparencia() {
       </p>
 
       {loading ? (
-        <p className="text-ink-2">Carregando documentos…</p>
+        <LoadingLogo label="Carregando documentos…" />
       ) : grupos.length === 0 ? (
         <p className="text-ink-2">
           Nenhum documento de transparência publicado no momento.

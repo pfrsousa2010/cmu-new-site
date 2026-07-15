@@ -46,47 +46,66 @@ export function parseDataBR(br: string): string | null {
   return `${m[3]}-${m[2]}-${m[1]}`;
 }
 
+/** URLs públicas das fotos do evento, ordenadas. */
+export function fotosEvento(e: EventoRow): string[] {
+  return [...(e.evento_fotos ?? [])]
+    .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
+    .map((f) => publicUrl(BUCKET_EVENTOS, f.storage_path));
+}
+
 /** URL pública da primeira foto de um evento, ou null. */
 export function capaEvento(e: EventoRow): string | null {
-  const fotos = [...(e.evento_fotos ?? [])].sort(
-    (a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)
-  );
-  return fotos[0] ? publicUrl(BUCKET_EVENTOS, fotos[0].storage_path) : null;
+  return fotosEvento(e)[0] ?? null;
 }
 
 export function ehFuturo(iso: string, hoje = new Date()): boolean {
   if (!iso) return false;
-  const hojeStr = hoje.toISOString().slice(0, 10);
-  return iso >= hojeStr;
+  const y = hoje.getFullYear();
+  const m = String(hoje.getMonth() + 1).padStart(2, "0");
+  const d = String(hoje.getDate()).padStart(2, "0");
+  return iso >= `${y}-${m}-${d}`;
 }
 
-/** Eventos publicados, com fotos, ordenados por data. */
+/** Próximos primeiro (data asc); passados depois (mais recentes primeiro). */
+export function ordenarEventosAgenda(eventos: EventoRow[]): EventoRow[] {
+  const futuros: EventoRow[] = [];
+  const passados: EventoRow[] = [];
+  for (const e of eventos) {
+    if (ehFuturo(e.data)) futuros.push(e);
+    else passados.push(e);
+  }
+  const cmpDataHora = (a: EventoRow, b: EventoRow) =>
+    a.data.localeCompare(b.data) || (a.hora ?? "").localeCompare(b.hora ?? "");
+  futuros.sort(cmpDataHora);
+  passados.sort((a, b) => cmpDataHora(b, a));
+  return [...futuros, ...passados];
+}
+
+/** Eventos publicados, com fotos. */
 export async function fetchEventos(): Promise<EventoRow[]> {
   const { data, error } = await supabase
     .from("site_eventos")
     .select("*, evento_fotos:site_evento_fotos(*)")
-    .eq("publicado", true)
-    .order("data", { ascending: true });
+    .eq("publicado", true);
 
   if (error) {
     console.error("Erro ao buscar eventos:", error.message);
     return [];
   }
-  return (data ?? []) as EventoRow[];
+  return ordenarEventosAgenda((data ?? []) as EventoRow[]);
 }
 
-/** Todos os eventos (admin), com fotos. */
+/** Todos os eventos (admin), com fotos. Em breve primeiro, data mais próxima. */
 export async function fetchEventosAdmin(): Promise<EventoRow[]> {
   const { data, error } = await supabase
     .from("site_eventos")
-    .select("*, evento_fotos:site_evento_fotos(*)")
-    .order("data", { ascending: false });
+    .select("*, evento_fotos:site_evento_fotos(*)");
 
   if (error) {
     console.error("Erro ao buscar eventos (admin):", error.message);
     return [];
   }
-  return (data ?? []) as EventoRow[];
+  return ordenarEventosAgenda((data ?? []) as EventoRow[]);
 }
 
 export interface EventoInput {
@@ -112,6 +131,17 @@ export async function atualizarEvento(
   input: EventoInput
 ): Promise<void> {
   const { error } = await supabase.from("site_eventos").update(input).eq("id", id);
+  if (error) throw error;
+}
+
+export async function setEventoPublicado(
+  id: string,
+  publicado: boolean
+): Promise<void> {
+  const { error } = await supabase
+    .from("site_eventos")
+    .update({ publicado })
+    .eq("id", id);
   if (error) throw error;
 }
 

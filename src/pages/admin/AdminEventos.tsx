@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Modal from "@/components/Modal";
 import { useToast } from "@/components/Toast";
@@ -8,22 +8,80 @@ import {
   criarEvento,
   atualizarEvento,
   removerEvento,
+  setEventoPublicado,
   adicionarFoto,
   removerFoto,
   ehFuturo,
   fmtDataBR,
-  parseDataBR,
   type EventoRow,
 } from "@/lib/eventos";
 
 const inputCls =
   "w-full rounded-[11px] border-[1.5px] border-black/[.13] px-[14px] py-3 text-[15px] outline-none transition-colors focus:border-azul";
 
+const MAX_FOTOS_EVENTO = 3;
+const MAX_FOTO_BYTES = 2 * 1024 * 1024;
+
+/** Converte hora legada ("14h00") para o formato do input type="time" (HH:mm). */
+function horaParaInput(hora: string | null | undefined): string {
+  if (!hora) return "";
+  if (/^\d{2}:\d{2}$/.test(hora)) return hora;
+  const m = hora.match(/^(\d{1,2})h(\d{2})$/i);
+  if (m) return `${m[1].padStart(2, "0")}:${m[2]}`;
+  return hora;
+}
+
+function filtrarImagensParaUpload(
+  files: Iterable<File>,
+  quantidadeAtual: number
+): { validas: File[]; avisos: string[] } {
+  const avisos: string[] = [];
+  const vagas = MAX_FOTOS_EVENTO - quantidadeAtual;
+  if (vagas <= 0) {
+    return {
+      validas: [],
+      avisos: [`Limite de ${MAX_FOTOS_EVENTO} fotos por evento.`],
+    };
+  }
+
+  const validas: File[] = [];
+  let ignoradasPorLimite = false;
+
+  for (const file of files) {
+    if (validas.length >= vagas) {
+      ignoradasPorLimite = true;
+      break;
+    }
+    if (!file.type.startsWith("image/")) {
+      avisos.push(`"${file.name}" não é uma imagem.`);
+      continue;
+    }
+    if (file.size > MAX_FOTO_BYTES) {
+      avisos.push(`"${file.name}" ultrapassa 2 MB.`);
+      continue;
+    }
+    validas.push(file);
+  }
+
+  if (ignoradasPorLimite) {
+    avisos.push(`Só é possível adicionar mais ${vagas} foto(s).`);
+  }
+
+  return { validas, avisos };
+}
+
+type FotoPendente = {
+  id: string;
+  file: File;
+  preview: string;
+};
+
 export default function AdminEventos() {
   const { toast } = useToast();
   const [params, setParams] = useSearchParams();
   const [eventos, setEventos] = useState<EventoRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busca, setBusca] = useState("");
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<EventoRow | null>(null);
@@ -32,7 +90,34 @@ export default function AdminEventos() {
   const [hora, setHora] = useState("");
   const [descricao, setDescricao] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [pending, setPending] = useState<Record<string, boolean>>({});
+  const [enviandoFotos, setEnviandoFotos] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [fotosPendentes, setFotosPendentes] = useState<FotoPendente[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const limparFotosPendentes = () => {
+    setFotosPendentes((prev) => {
+      prev.forEach((f) => URL.revokeObjectURL(f.preview));
+      return [];
+    });
+  };
+
+  const fecharModal = () => {
+    limparFotosPendentes();
+    setDragOver(false);
+    setModalOpen(false);
+  };
+
+  const qtdFotos = editando
+    ? editando.evento_fotos?.length ?? 0
+    : fotosPendentes.length;
+
+  const filtrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    if (!termo) return eventos;
+    return eventos.filter((e) => e.titulo.toLowerCase().includes(termo));
+  }, [eventos, busca]);
 
   const recarregar = async () => {
     setEventos(await fetchEventosAdmin());
@@ -54,6 +139,7 @@ export default function AdminEventos() {
   }, []);
 
   const abrirNovo = () => {
+    limparFotosPendentes();
     setEditando(null);
     setTitulo("");
     setData("");
@@ -63,10 +149,11 @@ export default function AdminEventos() {
   };
 
   const abrirEditar = (e: EventoRow) => {
+    limparFotosPendentes();
     setEditando(e);
     setTitulo(e.titulo);
-    setData(fmtDataBR(e.data));
-    setHora(e.hora ?? "");
+    setData(e.data);
+    setHora(horaParaInput(e.hora));
     setDescricao(e.descricao ?? "");
     setModalOpen(true);
   };
@@ -76,9 +163,8 @@ export default function AdminEventos() {
       toast("Dê um título ao evento");
       return;
     }
-    const iso = parseDataBR(data);
-    if (!iso) {
-      toast("Informe a data no formato dd/mm/aaaa");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      toast("Informe a data do evento");
       return;
     }
     setSalvando(true);
@@ -86,23 +172,49 @@ export default function AdminEventos() {
       const input = {
         titulo: titulo.trim(),
         descricao: descricao.trim() || null,
-        data: iso,
+        data,
         hora: hora.trim() || null,
-        publicado: true,
+        publicado: editando?.publicado ?? false,
       };
       if (editando) {
         await atualizarEvento(editando.id, input);
       } else {
-        await criarEvento(input);
+        const eventoId = await criarEvento(input);
+        if (fotosPendentes.length) {
+          await Promise.all(
+            fotosPendentes.map((f, i) => adicionarFoto(eventoId, f.file, i))
+          );
+        }
+        limparFotosPendentes();
       }
       await recarregar();
-      setModalOpen(false);
+      fecharModal();
       toast("Evento salvo");
     } catch (err) {
       toast("Erro ao salvar evento");
       console.error(err);
     } finally {
       setSalvando(false);
+    }
+  };
+
+  const toggleVis = async (e: EventoRow) => {
+    const novo = !e.publicado;
+    setPending((p) => ({ ...p, [e.id]: true }));
+    setEventos((evs) =>
+      evs.map((x) => (x.id === e.id ? { ...x, publicado: novo } : x))
+    );
+    try {
+      await setEventoPublicado(e.id, novo);
+      toast(novo ? "Evento visível no site" : "Evento oculto do site");
+    } catch (err) {
+      setEventos((evs) =>
+        evs.map((x) => (x.id === e.id ? { ...x, publicado: !novo } : x))
+      );
+      toast("Erro ao atualizar visibilidade");
+      console.error(err);
+    } finally {
+      setPending((p) => ({ ...p, [e.id]: false }));
     }
   };
 
@@ -118,21 +230,62 @@ export default function AdminEventos() {
     }
   };
 
-  const escolherFotos = async (files: FileList | null) => {
-    if (!editando || !files?.length) return;
+  const escolherFotos = async (files: FileList | File[] | null) => {
+    if (!files?.length || enviandoFotos || salvando) return;
+
+    const lista = Array.isArray(files) ? files : Array.from(files);
+    const { validas, avisos } = filtrarImagensParaUpload(lista, qtdFotos);
+
+    if (avisos.length) toast(avisos[0]);
+    if (!validas.length) return;
+
+    if (!editando) {
+      setFotosPendentes((prev) => [
+        ...prev,
+        ...validas.map((file) => ({
+          id: crypto.randomUUID(),
+          file,
+          preview: URL.createObjectURL(file),
+        })),
+      ]);
+      return;
+    }
+
+    setEnviandoFotos(true);
     try {
-      const base = editando.evento_fotos?.length ?? 0;
+      const base = qtdFotos;
       await Promise.all(
-        Array.from(files).map((f, i) => adicionarFoto(editando.id, f, base + i))
+        validas.map((f, i) => adicionarFoto(editando.id, f, base + i))
       );
       const novos = await fetchEventosAdmin();
       setEventos(novos);
       setEditando(novos.find((x) => x.id === editando.id) ?? null);
-      toast("Foto(s) adicionada(s)");
+      toast(
+        validas.length === 1
+          ? "Foto adicionada"
+          : `${validas.length} fotos adicionadas`
+      );
     } catch (err) {
       toast("Erro ao enviar foto");
       console.error(err);
+    } finally {
+      setEnviandoFotos(false);
     }
+  };
+
+  const aoSoltarArquivos = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (enviandoFotos || salvando || qtdFotos >= MAX_FOTOS_EVENTO) return;
+    escolherFotos(e.dataTransfer.files);
+  };
+
+  const removerFotoPendente = (id: string) => {
+    setFotosPendentes((prev) => {
+      const alvo = prev.find((f) => f.id === id);
+      if (alvo) URL.revokeObjectURL(alvo.preview);
+      return prev.filter((f) => f.id !== id);
+    });
   };
 
   const excluirFoto = async (fotoId: string) => {
@@ -169,14 +322,37 @@ export default function AdminEventos() {
         </button>
       </div>
 
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <input
+          type="search"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Buscar evento pelo nome…"
+          aria-label="Buscar evento pelo nome"
+          className="w-full max-w-md rounded-xl border-[1.5px] border-black/[.12] bg-white px-4 py-3 text-[14.5px] text-ink outline-none transition-colors placeholder:text-ink-2/70 focus:border-azul"
+        />
+        {!loading && (
+          <p className="m-0 text-[14px] font-bold text-ink-2">
+            {busca.trim()
+              ? `${filtrados.length} de ${eventos.length} ${eventos.length === 1 ? "evento" : "eventos"}`
+              : `${eventos.length} ${eventos.length === 1 ? "evento" : "eventos"}`}
+          </p>
+        )}
+      </div>
+
       {loading ? (
         <p className="text-ink-2">Carregando…</p>
       ) : eventos.length === 0 ? (
         <p className="text-ink-2">Nenhum evento cadastrado.</p>
+      ) : filtrados.length === 0 ? (
+        <p className="text-ink-2">
+          Nenhum evento encontrado para “{busca.trim()}”.
+        </p>
       ) : (
         <div className="grid gap-3.5">
-          {eventos.map((e) => {
+          {filtrados.map((e) => {
             const futuro = ehFuturo(e.data);
+            const busy = pending[e.id];
             const capa = e.evento_fotos?.[0]
               ? publicUrl(BUCKET_EVENTOS, e.evento_fotos[0].storage_path)
               : null;
@@ -209,12 +385,23 @@ export default function AdminEventos() {
                   className={[
                     "flex-none rounded-full px-3 py-[5px] text-xs font-bold",
                     futuro
-                      ? "bg-verde/[.12] text-verde-dark"
+                      ? "bg-laranja/[.12] text-laranja"
                       : "bg-black/[.07] text-ink-2",
                   ].join(" ")}
                 >
-                  {futuro ? "Publicado" : "Passado"}
+                  {futuro ? "Em breve" : "Finalizado"}
                 </span>
+                <div className="flex flex-none flex-col items-center gap-1">
+                  <span className="text-[11px] font-bold text-ink-2">
+                    Visível no site
+                  </span>
+                  <Toggle
+                    on={e.publicado}
+                    color="bg-azul"
+                    disabled={busy}
+                    onClick={() => toggleVis(e)}
+                  />
+                </div>
                 <button
                   onClick={() => abrirEditar(e)}
                   className="flex-none rounded-[9px] px-3 py-2 text-[13.5px] font-bold text-azul hover:bg-azul/[.08]"
@@ -234,7 +421,7 @@ export default function AdminEventos() {
       )}
 
       {/* Modal */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
+      <Modal open={modalOpen} onClose={fecharModal}>
         <h2 className="mb-[22px] font-display text-[22px] font-black">
           {editando ? "Editar evento" : "Novo evento"}
         </h2>
@@ -249,17 +436,17 @@ export default function AdminEventos() {
           <div className="grid grid-cols-2 gap-3.5">
             <Campo label="Data">
               <input
+                type="date"
                 value={data}
                 onChange={(e) => setData(e.target.value)}
-                placeholder="dd/mm/aaaa"
                 className={inputCls}
               />
             </Campo>
             <Campo label="Horário">
               <input
+                type="time"
                 value={hora}
                 onChange={(e) => setHora(e.target.value)}
-                placeholder="14h00"
                 className={inputCls}
               />
             </Campo>
@@ -274,52 +461,105 @@ export default function AdminEventos() {
           </Campo>
 
           <div>
-            <div className="mb-1.5 text-[13px] font-bold">Fotos do evento</div>
-            {!editando ? (
-              <div className="rounded-[10px] bg-site-bg px-4 py-3 text-[13px] text-ink-2">
-                Salve o evento primeiro para adicionar fotos.
-              </div>
-            ) : (
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <span className="text-[13px] font-bold">Fotos do evento</span>
+              <span className="text-[12px] font-semibold text-ink-2">
+                {qtdFotos}/{MAX_FOTOS_EVENTO}
+              </span>
+            </div>
+            <div
+              onDragEnter={(e) => {
+                e.preventDefault();
+                if (!enviandoFotos && !salvando && qtdFotos < MAX_FOTOS_EVENTO) {
+                  setDragOver(true);
+                }
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setDragOver(false);
+                }
+              }}
+              onDrop={aoSoltarArquivos}
+              className={[
+                "rounded-[12px] border-2 border-dashed p-3 transition-colors",
+                dragOver
+                  ? "border-azul bg-azul/[.06]"
+                  : "border-black/[.15] bg-white",
+              ].join(" ")}
+            >
               <div className="flex flex-wrap gap-2.5">
-                {editando.evento_fotos?.map((ft) => (
-                  <div key={ft.id} className="relative">
-                    <img
-                      src={publicUrl(BUCKET_EVENTOS, ft.storage_path)}
-                      alt=""
-                      className="block h-[76px] w-[110px] rounded-[10px] object-cover"
-                    />
-                    <button
-                      onClick={() => excluirFoto(ft.id)}
-                      className="absolute -right-[7px] -top-[7px] flex h-[22px] w-[22px] items-center justify-center rounded-full bg-vermelho text-xs font-extrabold text-white shadow-[0_2px_6px_rgba(0,0,0,.25)]"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  className="flex h-[76px] w-[110px] flex-col items-center justify-center gap-0.5 rounded-[10px] border-2 border-dashed border-black/[.18] text-[12px] font-bold text-ink-3 transition-colors hover:border-azul hover:text-azul"
-                >
-                  <span className="text-lg">+</span>Adicionar
-                </button>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  hidden
-                  onChange={(e) => {
-                    escolherFotos(e.target.files);
-                    e.target.value = "";
-                  }}
-                />
+                {editando
+                  ? editando.evento_fotos?.map((ft) => (
+                      <div key={ft.id} className="relative">
+                        <img
+                          src={publicUrl(BUCKET_EVENTOS, ft.storage_path)}
+                          alt=""
+                          className="block h-[76px] w-[110px] rounded-[10px] object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => excluirFoto(ft.id)}
+                          disabled={enviandoFotos || salvando}
+                          className="absolute -right-[7px] -top-[7px] flex h-[22px] w-[22px] items-center justify-center rounded-full bg-vermelho text-xs font-extrabold text-white shadow-[0_2px_6px_rgba(0,0,0,.25)] disabled:opacity-60"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))
+                  : fotosPendentes.map((ft) => (
+                      <div key={ft.id} className="relative">
+                        <img
+                          src={ft.preview}
+                          alt=""
+                          className="block h-[76px] w-[110px] rounded-[10px] object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removerFotoPendente(ft.id)}
+                          disabled={salvando}
+                          className="absolute -right-[7px] -top-[7px] flex h-[22px] w-[22px] items-center justify-center rounded-full bg-vermelho text-xs font-extrabold text-white shadow-[0_2px_6px_rgba(0,0,0,.25)] disabled:opacity-60"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                {qtdFotos < MAX_FOTOS_EVENTO && (
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={enviandoFotos || salvando}
+                    className="flex h-[76px] w-[110px] flex-col items-center justify-center gap-0.5 rounded-[10px] border-2 border-dashed border-black/[.18] text-[12px] font-bold text-ink-3 transition-colors hover:border-azul hover:text-azul disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span className="text-lg">+</span>
+                    {enviandoFotos ? "Enviando…" : "Adicionar"}
+                  </button>
+                )}
               </div>
-            )}
+              <p className="m-0 mt-2.5 text-[12px] leading-[1.45] text-ink-3">
+                Arraste imagens aqui ou clique em Adicionar. Apenas imagens, até
+                2 MB cada, máximo de {MAX_FOTOS_EVENTO} fotos.
+                {!editando && fotosPendentes.length > 0 && (
+                  <> Serão enviadas ao salvar o evento.</>
+                )}
+              </p>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={(e) => {
+                  escolherFotos(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+            </div>
           </div>
 
           <div className="mt-2 flex justify-end gap-3">
             <button
-              onClick={() => setModalOpen(false)}
+              onClick={fecharModal}
               className="rounded-full border-[1.5px] border-black/[.13] px-6 py-3 text-sm font-bold transition-colors hover:border-ink-2"
             >
               Cancelar
@@ -344,5 +584,35 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
       <div className="mb-1.5 text-[13px] font-bold">{label}</div>
       {children}
     </div>
+  );
+}
+
+function Toggle({
+  on,
+  color,
+  disabled,
+  onClick,
+}: {
+  on: boolean;
+  color: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={on}
+      className={[
+        "relative h-[26px] w-[46px] rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+        on ? color : "bg-black/[.18]",
+      ].join(" ")}
+    >
+      <span
+        className="absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,.25)] transition-[left]"
+        style={{ left: on ? "23px" : "3px" }}
+      />
+    </button>
   );
 }

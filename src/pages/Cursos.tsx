@@ -7,6 +7,7 @@ import {
   vagasRestantes,
   nomeCurto,
   fmtDataCurta,
+  fmtDataHora,
   DIAS_LABEL,
   PERIODOS_LABEL,
   STATUS_META,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/cursos";
 import { CURSO_FALLBACKS } from "@/lib/refImages";
 import LoadingLogo from "@/components/LoadingLogo";
+import InscricaoModal from "@/components/InscricaoModal";
 
 type Filtro = "todos" | Exclude<StatusCurso, "finalizado">;
 
@@ -30,6 +32,7 @@ export default function Cursos() {
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [busca, setBusca] = useState("");
+  const [cursoInscricaoId, setCursoInscricaoId] = useState<string | null>(null);
 
   useEffect(() => {
     let ativo = true;
@@ -106,23 +109,44 @@ export default function Cursos() {
       ) : (
         <div className="mt-7 grid grid-cols-1 gap-[22px] sm:grid-cols-2 lg:grid-cols-3">
           {filtrados.map((c, i) => (
-            <CursoCard key={c.id} curso={c} idx={i} />
+            <CursoCard
+              key={c.id}
+              curso={c}
+              idx={i}
+              onInscrever={() => setCursoInscricaoId(c.id)}
+            />
           ))}
         </div>
       )}
+
+      <InscricaoModal
+        cursoId={cursoInscricaoId}
+        onClose={() => setCursoInscricaoId(null)}
+      />
     </div>
   );
 }
 
-function CursoCard({ curso, idx }: { curso: CursoRow; idx: number }) {
+function CursoCard({
+  curso,
+  idx,
+  onInscrever,
+}: {
+  curso: CursoRow;
+  idx: number;
+  onInscrever: () => void;
+}) {
   const st = statusDe(curso);
   const meta = STATUS_META[st];
   const restantes = vagasRestantes(curso);
   const total = curso.vagas ?? 0;
-  const pct = total > 0 ? Math.round((restantes / total) * 100) : 0;
   const img =
     curso.imagem_url || CURSO_FALLBACKS[idx % CURSO_FALLBACKS.length];
-  const dias = curso.dia_semana.map((d) => DIAS_LABEL[d] ?? d).join(" · ");
+  const dias = curso.dia_semana
+    .map((d) => DIAS_LABEL[d] ?? d)
+    .join(" · ");
+  const carga =
+    curso.carga_horaria_total ?? curso.carga_horaria ?? null;
 
   return (
     <div className="flex flex-col overflow-hidden rounded-card border border-black/[.07] bg-white transition-shadow hover:shadow-card-hover-lg">
@@ -150,7 +174,7 @@ function CursoCard({ curso, idx }: { curso: CursoRow; idx: number }) {
         <div className="flex flex-wrap gap-1.5">
           <Chip>📅 {dias}</Chip>
           <Chip>🕐 {PERIODOS_LABEL[curso.periodo]}</Chip>
-          {curso.carga_horaria ? <Chip>⏱ {curso.carga_horaria}h</Chip> : null}
+          {carga ? <Chip>⏱ {carga}h</Chip> : null}
         </div>
         <div className="text-[13px] text-ink-2">
           De {fmtDataCurta(curso.inicio)} a {fmtDataCurta(curso.fim)}
@@ -158,19 +182,22 @@ function CursoCard({ curso, idx }: { curso: CursoRow; idx: number }) {
         <div className="mt-auto">
           {st === "inscricoes" ? (
             <>
-              <div className="mb-1.5 flex justify-between text-[12.5px] font-bold text-ink-mid">
-                <span>Vagas</span>
-                <span>
-                  {restantes} de {total} disponíveis
-                </span>
+              {(curso.inscricoes_inicio || curso.inscricoes_fim) && (
+                <div className="mb-1.5 text-[12.5px] leading-[1.45] text-ink-2">
+                  Inscrições: {fmtDataHora(curso.inscricoes_inicio)}
+                  {curso.inscricoes_fim
+                    ? ` até ${fmtDataHora(curso.inscricoes_fim)}`
+                    : ""}
+                </div>
+              )}
+              <div className="text-[12.5px] font-bold text-ink-mid">
+                {restantes} de {total} disponíveis
               </div>
-              <div className="h-[7px] overflow-hidden rounded-full bg-subtle">
-                <div
-                  className={`h-full rounded-full ${meta.className}`}
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-              <button className="mt-3.5 w-full rounded-xl bg-verde px-3 py-[11px] text-center font-display text-[14.5px] font-extrabold text-white transition-colors hover:bg-verde-hover">
+              <button
+                type="button"
+                onClick={onInscrever}
+                className="mt-3.5 w-full rounded-xl bg-verde px-3 py-[11px] text-center font-display text-[14.5px] font-extrabold text-white transition-colors hover:bg-verde-hover"
+              >
                 Inscreva-se
               </button>
             </>

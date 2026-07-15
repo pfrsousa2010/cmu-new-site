@@ -6,19 +6,25 @@ const MENU = [
   { to: "/admin", label: "Visão geral", icone: "⌂", end: true },
   { to: "/admin/eventos", label: "Eventos e fotos", icone: "📅" },
   { to: "/admin/arquivos", label: "Editais e arquivos", icone: "📄" },
-  { to: "/admin/cursos", label: "Cursos (Supabase)", icone: "🎓" },
+  { to: "/admin/cursos", label: "Cursos (SGE)", icone: "🎓" },
 ];
 
-function iniciais(email?: string | null) {
-  if (!email) return "AD";
-  return email.slice(0, 2).toUpperCase();
+function iniciais(nome?: string | null, email?: string | null) {
+  const base = (nome || email || "").trim();
+  if (!base) return "AD";
+  const partes = base.split(/\s+/).filter(Boolean);
+  if (partes.length >= 2) {
+    return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+  }
+  return base.slice(0, 2).toUpperCase();
 }
 
 export default function AdminLayout() {
-  const { session, signOut } = useAuth();
+  const { session, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const email = session?.user.email;
+  const email = profile?.email ?? session?.user.email;
+  const nome = profile?.nome?.trim() || email;
 
   const sair = async () => {
     await signOut();
@@ -70,10 +76,12 @@ export default function AdminLayout() {
         </nav>
         <div className="mt-auto flex items-center gap-2.5 border-t border-white/10 px-5 py-[18px]">
           <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-verde text-[13px] font-extrabold">
-            {iniciais(email)}
+            {iniciais(profile?.nome, email)}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[13px] font-bold">{email}</div>
+            <div className="truncate text-[13px] font-bold" title={email}>
+              {nome}
+            </div>
             <button
               onClick={sair}
               className="text-[11.5px] text-white/50 hover:text-white"

@@ -18,17 +18,85 @@ function tempoRelativo(iso: string): string {
   return meses <= 1 ? "há 1 mês" : `há ${meses} meses`;
 }
 
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={`animate-pulse rounded-md bg-black/[.08] ${className ?? ""}`}
+    />
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div aria-busy="true" aria-live="polite">
+      <Skeleton className="mb-2 h-8 w-56" />
+      <Skeleton className="mb-7 h-4 w-48" />
+
+      <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-2xl border-t-4 border-t-black/[.08] bg-white px-[22px] py-5"
+          >
+            <Skeleton className="h-3.5 w-28" />
+            <Skeleton className="mt-3 h-9 w-14" />
+            <Skeleton className="mt-2 h-3 w-36" />
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.4fr_1fr]">
+        <div className="rounded-[18px] bg-white px-[26px] py-6">
+          <Skeleton className="mb-5 h-5 w-40" />
+          <div className="grid gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 py-1">
+                <Skeleton className="h-2 w-2 flex-none rounded-full" />
+                <Skeleton className="h-4 flex-1" />
+                <Skeleton className="h-3.5 w-16 flex-none" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[18px] bg-white px-[26px] py-6">
+          <Skeleton className="mb-5 h-5 w-32" />
+          <div className="grid gap-2.5">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [cursos, setCursos] = useState<CursoRow[]>([]);
   const [eventos, setEventos] = useState<EventoRow[]>([]);
   const [arquivos, setArquivos] = useState<ArquivoRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchCursos().then(setCursos);
-    fetchEventosAdmin().then(setEventos);
-    fetchArquivos().then(setArquivos);
+    let ativo = true;
+    Promise.all([fetchCursos(), fetchEventosAdmin(), fetchArquivos()])
+      .then(([c, e, a]) => {
+        if (!ativo) return;
+        setCursos(c);
+        setEventos(e);
+        setArquivos(a);
+      })
+      .finally(() => {
+        if (ativo) setLoading(false);
+      });
+    return () => {
+      ativo = false;
+    };
   }, []);
+
+  if (loading) return <DashboardSkeleton />;
 
   const visiveis = cursos.filter(isVisivel).length;
   const abertas = cursos.filter((c) => c.inscricoes_ativa && !c.is_cancelado).length;
@@ -38,7 +106,7 @@ export default function Dashboard() {
     {
       label: "Cursos visíveis no site",
       valor: visiveis,
-      sub: `de ${cursos.length} no Supabase`,
+      sub: `de ${cursos.length} no SGE - CMU`,
       border: "border-t-verde",
     },
     {
@@ -146,7 +214,7 @@ export default function Dashboard() {
               onClick={() => navigate("/admin/cursos")}
               className="rounded-xl bg-verde/[.08] px-4 py-[13px] text-left text-sm font-bold text-verde-dark transition-colors hover:bg-verde/[.15]"
             >
-              Ver cursos (Supabase)
+              Ver cursos (SGE - CMU)
             </button>
           </div>
         </div>
