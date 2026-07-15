@@ -20,6 +20,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // colidir com o sistema de gestão que compartilha o mesmo projeto Supabase).
 export const BUCKET_EVENTOS = "site-eventos";
 export const BUCKET_ARQUIVOS = "site-arquivos";
+export const BUCKET_CURSOS = "site-cursos";
 
 /** URL pública de um objeto no Storage. */
 export function publicUrl(bucket: string, path: string): string {

@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase, BUCKET_CURSOS, publicUrl } from "./supabase";
 
 export type Periodo = "manha" | "tarde" | "noite";
 export type DiaSemana = "seg" | "ter" | "qua" | "qui" | "sex" | "sab" | "dom";
@@ -465,4 +465,76 @@ export async function setVisivelSite(id: string, visivel: boolean): Promise<void
     .update({ visivel_site: visivel })
     .eq("id", id);
   if (error) throw error;
+}
+
+export const MAX_CURSO_IMAGEM_BYTES = 2 * 1024 * 1024;
+
+export function validarImagemCurso(file: File): string | null {
+  if (!file.type.startsWith("image/")) return "Selecione apenas arquivos de imagem.";
+  if (file.size > MAX_CURSO_IMAGEM_BYTES) return "A imagem deve ter no máximo 2 MB.";
+  return null;
+}
+
+function pathFromCursoImagemUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const marker = `/object/public/${BUCKET_CURSOS}/`;
+  const i = url.indexOf(marker);
+  if (i < 0) return null;
+  return decodeURIComponent(url.slice(i + marker.length));
+}
+
+/** Envia imagem ao Storage e grava a URL pública em cursos.imagem_url. */
+export async function setCursoImagem(
+  cursoId: string,
+  file: File,
+  urlAtual?: string | null,
+  opts?: { maxBytes?: number }
+): Promise<string> {
+  const max = opts?.maxBytes ?? MAX_CURSO_IMAGEM_BYTES;
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Selecione apenas arquivos de imagem.");
+  }
+  if (file.size > max) {
+    throw new Error(
+      max <= MAX_CURSO_IMAGEM_BYTES
+        ? "A imagem deve ter no máximo 2 MB."
+        : "A imagem baixada é grande demais. Tente outra foto."
+    );
+  }
+
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${cursoId}/${Date.now()}.${ext}`;
+  const up = await supabase.storage
+    .from(BUCKET_CURSOS)
+    .upload(path, file, { upsert: false, contentType: file.type });
+  if (up.error) throw up.error;
+
+  const url = publicUrl(BUCKET_CURSOS, path);
+  const { error } = await supabase
+    .from("cursos")
+    .update({ imagem_url: url })
+    .eq("id", cursoId);
+  if (error) {
+    await supabase.storage.from(BUCKET_CURSOS).remove([path]);
+    throw error;
+  }
+
+  const oldPath = pathFromCursoImagemUrl(urlAtual);
+  if (oldPath && oldPath !== path) {
+    await supabase.storage.from(BUCKET_CURSOS).remove([oldPath]);
+  }
+
+  return url;
+}
+
+export async function removerCursoImagem(curso: CursoRow): Promise<void> {
+  const path = pathFromCursoImagemUrl(curso.imagem_url);
+  const { error } = await supabase
+    .from("cursos")
+    .update({ imagem_url: null })
+    .eq("id", curso.id);
+  if (error) throw error;
+  if (path) {
+    await supabase.storage.from(BUCKET_CURSOS).remove([path]);
+  }
 }
