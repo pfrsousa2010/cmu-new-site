@@ -1,10 +1,25 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import Depoimentos from "@/components/Depoimentos";
 import {
-  HERO_IMG,
   IMG_PADARIA,
   IMG_MESA,
   IMG_MARMITA,
 } from "@/lib/refImages";
+
+const HERO_FOTOS = [
+  "/sobre-nos/04c518_0422ce93c8c44973a338f68ce10b227b~mv2.avif",
+  "/sobre-nos/04c518_04f3154884c94bb194263e71e7e76899~mv2.avif",
+  "/sobre-nos/04c518_142944292c9b45f1a6b4d15a918d7b18~mv2.avif",
+  "/sobre-nos/04c518_551ca846c7e142458ac05b3964563c73~mv2.avif",
+  "/sobre-nos/04c518_6a530e9a6fb4442fae359c9931a0baa2~mv2.avif",
+  "/sobre-nos/04c518_6c171a90a57f4d6da5b3997a0e5f30aa~mv2.avif",
+  "/sobre-nos/04c518_93ea2b34f5e54a888b3511bb98bdc5c1~mv2.avif",
+  "/sobre-nos/04c518_9eaca1b8bdfa48bf83f8d04e266a3ca4~mv2.avif",
+  "/sobre-nos/04c518_a209a26536014f3fb7a563b2b3945c00~mv2.avif",
+  "/sobre-nos/04c518_a8e6be6f5d3f4cc69f8ee875a36719d9~mv2.avif",
+  "/sobre-nos/e7e902_feb773fdef5747039c2ede0def345afd~mv2.avif",
+];
 
 const DESTAQUES = [
   {
@@ -26,6 +41,53 @@ const DESTAQUES = [
     img: IMG_MARMITA,
   },
 ];
+
+function HeroCarousel() {
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused) return;
+    const id = window.setInterval(() => {
+      setIndex((i) => (i + 1) % HERO_FOTOS.length);
+    }, 4000);
+    return () => window.clearInterval(id);
+  }, [paused]);
+
+  return (
+    <div
+      className="relative h-[400px] overflow-hidden rounded-3xl"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      {HERO_FOTOS.map((src, i) => (
+        <img
+          key={src}
+          src={src}
+          alt={`Alunas em atividade ${i + 1}`}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out ${
+            i === index ? "opacity-100" : "opacity-0"
+          }`}
+        />
+      ))}
+      <div className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/35 to-transparent" />
+      <div className="absolute left-1/2 top-4 z-10 flex -translate-x-1/2 gap-1.5">
+        {HERO_FOTOS.map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            aria-label={`Ir para foto ${i + 1}`}
+            aria-current={i === index}
+            onClick={() => setIndex(i)}
+            className={`h-2 rounded-full transition-all duration-300 ${
+              i === index ? "w-5 bg-white" : "w-2 bg-white/55 hover:bg-white/80"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   return (
@@ -62,12 +124,8 @@ export default function Home() {
         </div>
 
         <div className="relative">
-          <img
-            src={HERO_IMG}
-            alt="Alunas em atividade"
-            className="block h-[400px] w-full rounded-3xl object-cover"
-          />
-          <div className="absolute -bottom-[18px] -left-[18px] flex gap-[18px] rounded-2xl bg-white px-5 py-3.5 shadow-[0_8px_30px_rgba(0,0,0,.12)]">
+          <HeroCarousel />
+          <div className="absolute -bottom-[18px] -left-[18px] z-20 flex gap-[18px] rounded-2xl bg-white px-5 py-3.5 shadow-[0_8px_30px_rgba(0,0,0,.12)]">
             {[
               ["+30", "anos de história", "text-verde"],
               ["+500", "alunos por ano", "text-laranja"],
@@ -188,6 +246,8 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      <Depoimentos />
     </>
   );
 }
