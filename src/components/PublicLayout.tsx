@@ -188,8 +188,19 @@ export default function PublicLayout() {
           </div>
         </div>
         <div className="border-t border-white/[.12]">
-          <div className="mx-auto flex max-w-container flex-wrap justify-between gap-2 px-6 py-[18px] text-[13px] text-white/55">
+          <div className="mx-auto flex max-w-container flex-wrap items-center justify-between gap-2 px-6 py-[18px] text-[13px] text-white/55">
             <span>© 2026 Clube das Mães Unidas</span>
+            <span>
+              Desenvolvido por{" "}
+              <a
+                href="https://microfocus.dev.br/"
+                target="_blank"
+                rel="noreferrer"
+                className="text-white/55 underline decoration-white/25 underline-offset-2 transition-colors hover:text-white hover:decoration-white/50"
+              >
+                Micro Focus
+              </a>
+            </span>
             <span>Termos de uso · Política de Privacidade</span>
           </div>
         </div>
