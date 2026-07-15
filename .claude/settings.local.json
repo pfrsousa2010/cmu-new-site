@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(file uploads/*)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(pkill -f \"npm install\")",
+      "Bash(cp /tmp/testsupa.mjs ./_testsupa.mjs)",
+      "Bash(node ./_testsupa.mjs)",
+      "Bash(sed -i 's/\\\\.from\\(\"eventos\"\\)/.from\\(\"site_eventos\"\\)/g; s/\\\\.from\\(\"evento_fotos\"\\)/.from\\(\"site_evento_fotos\"\\)/g' src/lib/eventos.ts)",
+      "Bash(sed -i 's/\\\\.from\\(\"arquivos\"\\)/.from\\(\"site_arquivos\"\\)/g' src/lib/arquivos.ts)",
+      "Bash(echo \"started pid $!\")",
+      "Read(//tmp/**)",
+      "Bash(curl -s http://localhost:5173/)",
+      "Bash(curl -s http://localhost:5173/src/main.tsx)",
+      "Bash(pkill -f \"vite\")"
+    ]
+  }
+}

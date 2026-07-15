@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&amp;family=Nunito+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#faf8f5;font-family:'Nunito Sans',sans-serif;color:#2b2622;}
+a{color:#2e6fb7;text-decoration:none;}
+a:hover{color:#ee7623;}
+*{box-sizing:border-box;}
+input,textarea,select{font-family:'Nunito Sans',sans-serif;}
+</style>
+</helmet>
+
+<!-- ============ HEADER ============ -->
+<div data-screen-label="Header" style="position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-bottom:1px solid rgba(0,0,0,.07)">
+  <div style="max-width:1160px;margin:0 auto;padding:0 24px;height:72px;display:flex;align-items:center;gap:24px">
+    <div onClick="{{ goHome }}" style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:none">
+      <img src="uploads/logo-cmu.png" alt="Clube das Mães Unidas" style="width:44px;height:44px;object-fit:contain">
+      <div style="font-family:Nunito,sans-serif;font-weight:900;font-size:15px;line-height:1.1;color:#2b2622">Clube das&nbsp;<br>Mães Unidas</div>
+    </div>
+    <nav style="display:flex;gap:2px;flex:1;justify-content:center;flex-wrap:wrap">
+      <sc-for list="{{ navItems }}" as="nav" hint-placeholder-count="8">
+        <div onClick="{{ nav.go }}" style="padding:8px 13px;border-radius:999px;font-size:14px;font-weight:{{ nav.weight }};color: {{ nav.color }};background: {{ nav.bg }};cursor:pointer;white-space:nowrap" style-hover="background:rgba(46,111,183,.08)">{{ nav.label }}</div>
+      </sc-for>
+    </nav>
+    <div onClick="{{ goDoar }}" style="flex:none;background:#ee7623;color:#fff;font-family:Nunito,sans-serif;font-weight:800;font-size:14px;padding:10px 22px;border-radius:999px;cursor:pointer;box-shadow:0 3px 10px rgba(238,118,35,.35)" style-hover="background:#d96613">Doe aqui ♥</div>
+  </div>
+</div>
+
+<!-- ============ HOME ============ -->
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Home">
+
+  <!-- Hero -->
+  <div style="max-width:1160px;margin:0 auto;padding:64px 24px 56px;display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center">
+    <div>
+      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(98,179,46,.12);color:#4a8c20;font-weight:700;font-size:13px;padding:6px 14px;border-radius:999px;margin-bottom:20px">● Inscrições abertas para novos cursos</div>
+      <h1 style="font-family:Nunito,sans-serif;font-weight:900;font-size:54px;line-height:1.05;margin:0 0 20px">Capacitando para um <span style="color:#62b32e">mundo</span> <span style="color:#2e6fb7">melhor</span></h1>
+      <p style="font-size:18px;line-height:1.6;color:#6f675f;margin:0 0 32px;max-width:480px;text-wrap:pretty">O Clube das Mães Unidas prepara e capacita jovens e adultos para o mercado de trabalho, por meio de cursos gratuitos e trabalhos de inclusão social em Londrina.</p>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <div onClick="{{ goCursos }}" style="background:#2e6fb7;color:#fff;font-family:Nunito,sans-serif;font-weight:800;font-size:16px;padding:14px 30px;border-radius:999px;cursor:pointer;box-shadow:0 4px 14px rgba(46,111,183,.3)" style-hover="background:#245c9c">Ver cursos</div>
+        <div onClick="{{ goSobre }}" style="background:#fff;color:#2b2622;border:1.5px solid rgba(0,0,0,.12);font-family:Nunito,sans-serif;font-weight:800;font-size:16px;padding:14px 30px;border-radius:999px;cursor:pointer" style-hover="border-color:#2e6fb7;color:#2e6fb7">Conheça a ONG</div>
+      </div>
+    </div>
+    <div style="position:relative">
+      <img src="https://static.wixstatic.com/media/e50536_0aac0d5797c24c9ebb1b78f3f9026718~mv2_d_5873_3304_s_4_2.jpg/v1/fill/w_1100,h_760,al_c,q_85/hero.jpg" alt="Alunas em atividade" style="width:100%;height:400px;object-fit:cover;border-radius:24px;display:block">
+      <div style="position:absolute;left:-18px;bottom:-18px;background:#fff;border-radius:16px;padding:14px 20px;box-shadow:0 8px 30px rgba(0,0,0,.12);display:flex;gap:18px">
+        <div><div style="font-family:Nunito,sans-serif;font-weight:900;font-size:24px;color:#62b32e">+30</div><div style="font-size:12px;color:#6f675f">anos de história</div></div>
+        <div><div style="font-family:Nunito,sans-serif;font-weight:900;font-size:24px;color:#ee7623">+500</div><div style="font-size:12px;color:#6f675f">alunos por ano</div></div>
+        <div><div style="font-family:Nunito,sans-serif;font-weight:900;font-size:24px;color:#d13a41">100%</div><div style="font-size:12px;color:#6f675f">gratuito</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pilares -->
+  <div style="max-width:1160px;margin:0 auto;padding:32px 24px 56px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+    <div onClick="{{ goSobre }}" style="background:#fff;border-radius:20px;padding:28px;border-top:5px solid #62b32e;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.05)" style-hover="box-shadow:0 8px 24px rgba(0,0,0,.09)">
+      <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:20px;margin-bottom:8px">Missão</div>
+      <p style="margin:0;font-size:14.5px;line-height:1.6;color:#6f675f">Contribuir para a construção de uma sociedade melhor, minimizando vulnerabilidades sociais e promovendo o protagonismo das pessoas atendidas.</p>
+    </div>
+    <div onClick="{{ goEventos }}" style="background:#fff;border-radius:20px;padding:28px;border-top:5px solid #2e6fb7;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.05)" style-hover="box-shadow:0 8px 24px rgba(0,0,0,.09)">
+      <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:20px;margin-bottom:8px">Agenda</div>
+      <p style="margin:0;font-size:14.5px;line-height:1.6;color:#6f675f">Acompanhe nossa agenda com os próximos eventos, oficinas e cursos abertos à comunidade.</p>
+    </div>
+    <div onClick="{{ goCursos }}" style="background:#fff;border-radius:20px;padding:28px;border-top:5px solid #ee7623;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.05)" style-hover="box-shadow:0 8px 24px rgba(0,0,0,.09)">
+      <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:20px;margin-bottom:8px">Cursos</div>
+      <p style="margin:0;font-size:14.5px;line-height:1.6;color:#6f675f">Conheça nossos cursos e possibilidades de crescimento pessoal e profissional — sempre gratuitos.</p>
+    </div>
+  </div>
+
+  <!-- Fique por dentro -->
+  <div style="background:#fff;border-top:1px solid rgba(0,0,0,.06);border-bottom:1px solid rgba(0,0,0,.06)">
+    <div style="max-width:1160px;margin:0 auto;padding:64px 24px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:28px">
+        <h2 style="font-family:Nunito,sans-serif;font-weight:900;font-size:34px;margin:0">Fique por dentro</h2>
+        <div onClick="{{ goCursos }}" style="color:#2e6fb7;font-weight:700;font-size:15px;cursor:pointer">Ver todos os cursos →</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+        <sc-for list="{{ destaques }}" as="d" hint-placeholder-count="3">
+          <div onClick="{{ goCursos }}" style="border-radius:18px;overflow:hidden;border:1px solid rgba(0,0,0,.07);cursor:pointer;background:#fff" style-hover="box-shadow:0 10px 28px rgba(0,0,0,.1)">
+            <img src="{{ d.img }}" alt="{{ d.titulo }}" style="width:100%;height:180px;object-fit:cover;display:block">
+            <div style="padding:18px 20px 20px">
+              <div style="font-size:12px;font-weight:700;color: {{ d.tagColor }};margin-bottom:6px">{{ d.tag }}</div>
+              <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:18px">{{ d.titulo }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quote + CTA -->
+  <div style="max-width:800px;margin:0 auto;padding:80px 24px;text-align:center">
+    <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:28px;line-height:1.4;color:#2b2622">“Estamos aqui para ajudar as pessoas e é nossa obrigação fazê-lo. É a nossa missão.”</div>
+    <div style="margin-top:14px;color:#6f675f;font-size:15px">— Hélio Terzoni</div>
+    <div style="margin-top:40px;display:inline-flex;gap:14px">
+      <div onClick="{{ goContato }}" style="background:#62b32e;color:#fff;font-family:Nunito,sans-serif;font-weight:800;font-size:16px;padding:14px 30px;border-radius:999px;cursor:pointer;box-shadow:0 4px 14px rgba(98,179,46,.3)" style-hover="background:#52991f">Junte-se a nós</div>
+      <div onClick="{{ goDoar }}" style="background:#fff;border:1.5px solid #ee7623;color:#ee7623;font-family:Nunito,sans-serif;font-weight:800;font-size:16px;padding:14px 30px;border-radius:999px;cursor:pointer" style-hover="background:#ee7623;color:#fff">Faça uma doação</div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ SOBRE ============ -->
+<sc-if value="{{ isSobre }}">
+<div data-screen-label="Sobre nós" style="max-width:1160px;margin:0 auto;padding:56px 24px 80px">
+  <h1 style="font-family:Nunito,sans-serif;font-weight:900;font-size:42px;margin:0 0 12px">Sobre nós</h1>
+  <p style="font-size:17px;color:#6f675f;max-width:640px;line-height:1.65;margin:0 0 40px;text-wrap:pretty">Há mais de três décadas em Londrina-PR, o Clube das Mães Unidas atua na capacitação de jovens e adultos para o mercado de trabalho e na promoção da inclusão social.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
+    <img src="https://static.wixstatic.com/media/84770f_6d8f65290fd8480282082b66ac697efa~mv2_d_8688_5792_s_4_2.jpeg/v1/fill/w_1000,h_640,al_c,q_85/sobre.jpg" alt="Nossa equipe" style="width:100%;height:320px;object-fit:cover;border-radius:20px">
+    <div style="display:grid;gap:16px">
+      <div style="background:#fff;border-radius:16px;padding:22px 24px;border-left:5px solid #62b32e"><div style="font-family:Nunito,sans-serif;font-weight:800;font-size:17px;margin-bottom:4px">Missão</div><div style="font-size:14.5px;line-height:1.55;color:#6f675f">Contribuir para a construção de uma sociedade melhor através de serviços que minimizem as vulnerabilidades sociais e proporcionem protagonismo, crescimento pessoal e social.</div></div>
+      <div style="background:#fff;border-radius:16px;padding:22px 24px;border-left:5px solid #2e6fb7"><div style="font-family:Nunito,sans-serif;font-weight:800;font-size:17px;margin-bottom:4px">Visão</div><div style="font-size:14.5px;line-height:1.55;color:#6f675f">Ser referência em capacitação profissional e inclusão produtiva na região de Londrina.</div></div>
+      <div style="background:#fff;border-radius:16px;padding:22px 24px;border-left:5px solid #ee7623"><div style="font-family:Nunito,sans-serif;font-weight:800;font-size:17px;margin-bottom:4px">Valores</div><div style="font-size:14.5px;line-height:1.55;color:#6f675f">Acolhimento, respeito, ética, transparência e compromisso com a comunidade.</div></div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ PROJETOS ============ -->
+<sc-if value="{{ isProjetos }}">
+<div data-screen-label="Projetos" style="max-width:1160px;margin:0 auto;padding:56px 24px 80px">
+  <h1 style="font-family:Nunito,sans-serif;font-weight:900;font-size:42px;margin:0 0 12px">Projetos</h1>
+  <p style="font-size:17px;color:#6f675f;max-width:640px;line-height:1.65;margin:0 0 40px">Duas frentes de atuação contínua junto à comunidade.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+    <div style="background:#fff;border-radius:22px;overflow:hidden;border:1px solid rgba(0,0,0,.07)">
+      <div style="height:8px;background:#2e6fb7"></div>
+      <div style="padding:32px">
+        <div style="font-size:12px;font-weight:700;color:#2e6fb7;letter-spacing:.06em;margin-bottom:8px">SCFV</div>
+        <h2 style="font-family:Nunito,sans-serif;font-weight:800;font-size:24px;margin:0 0 12px">Serviço de Convivência e Fortalecimento de Vínculos</h2>
+        <p style="font-size:15px;line-height:1.65;color:#6f675f;margin:0">Atividades em grupo que fortalecem vínculos familiares e comunitários, prevenindo situações de risco social por meio de convivência, arte, esporte e cultura.</p>
+      </div>
+    </div>
+    <div style="background:#fff;border-radius:22px;overflow:hidden;border:1px solid rgba(0,0,0,.07)">
+      <div style="height:8px;background:#62b32e"></div>
+      <div style="padding:32px">
+        <div style="font-size:12px;font-weight:700;color:#62b32e;letter-spacing:.06em;margin-bottom:8px">CAPACITAÇÃO</div>
+        <h2 style="font-family:Nunito,sans-serif;font-weight:800;font-size:24px;margin:0 0 12px">Educação Socioprofissional e Inclusão Produtiva</h2>
+        <p style="font-size:15px;line-height:1.65;color:#6f675f;margin:0">Cursos de qualificação profissional gratuitos que preparam jovens e adultos para o mercado de trabalho e para a geração de renda.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ CURSOS ============ -->
+<sc-if value="{{ isCursos }}">
+<div data-screen-label="Cursos" style="max-width:1160px;margin:0 auto;padding:56px 24px 80px">
+  <div style="display:flex;justify-content:space-between;align-items:end;flex-wrap:wrap;gap:16px;margin-bottom:8px">
+    <div>
+      <h1 style="font-family:Nunito,sans-serif;font-weight:900;font-size:42px;margin:0 0 12px">Cursos</h1>
+      <p style="font-size:16px;color:#6f675f;margin:0;max-width:560px;line-height:1.6">Cursos gratuitos de qualificação profissional. Dados sincronizados em tempo real com nosso sistema de gestão.</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <sc-for list="{{ filtros }}" as="f" hint-placeholder-count="4">
+        <div onClick="{{ f.go }}" style="padding:9px 18px;border-radius:999px;font-size:13.5px;font-weight:700;cursor:pointer;background: {{ f.bg }};color: {{ f.color }};border:1.5px solid {{ f.border }}">{{ f.label }}</div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:28px">
+    <sc-for list="{{ cursosFiltrados }}" as="c" hint-placeholder-count="6">
+      <div style="background:#fff;border-radius:20px;border:1px solid rgba(0,0,0,.07);overflow:hidden;display:flex;flex-direction:column" style-hover="box-shadow:0 10px 28px rgba(0,0,0,.1)">
+        <div style="position:relative">
+          <img src="{{ c.img }}" alt="{{ c.titulo }}" style="width:100%;height:160px;object-fit:cover;display:block">
+          <div style="position:absolute;top:12px;left:12px;background: {{ c.statusBg }};color:#fff;font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px">{{ c.statusLabel }}</div>
+        </div>
+        <div style="padding:20px 22px 22px;display:flex;flex-direction:column;gap:10px;flex:1">
+          <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:19px;line-height:1.25">{{ c.titulo }}</div>
+          <div style="font-size:13.5px;color:#6f675f">Prof. {{ c.professor }}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <div style="background:#faf8f5;border-radius:8px;padding:4px 10px;font-size:12.5px;font-weight:600;color:#5a544d">📅 {{ c.dias }}</div>
+            <div style="background:#faf8f5;border-radius:8px;padding:4px 10px;font-size:12.5px;font-weight:600;color:#5a544d">🕐 {{ c.periodoLabel }}</div>
+            <div style="background:#faf8f5;border-radius:8px;padding:4px 10px;font-size:12.5px;font-weight:600;color:#5a544d">⏱ {{ c.carga }}h</div>
+          </div>
+          <div style="font-size:13px;color:#6f675f">{{ c.datas }}</div>
+          <div style="margin-top:auto">
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;color:#5a544d;margin-bottom:6px"><span>Vagas</span><span>{{ c.vagasLabel }}</span></div>
+            <div style="height:7px;background:#f0ede8;border-radius:99px;overflow:hidden"><div style="height:100%;border-radius:99px;background: {{ c.statusBg }};width: {{ c.barPct }}"></div></div>
+            <sc-if value="{{ c.aberto }}">
+              <div style="margin-top:14px;background:#62b32e;color:#fff;text-align:center;font-family:Nunito,sans-serif;font-weight:800;font-size:14.5px;padding:11px;border-radius:12px;cursor:pointer" style-hover="background:#52991f">Inscreva-se</div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ EVENTOS ============ -->
+<sc-if value="{{ isEventos }}">
+<div data-screen-label="Eventos" style="max-width:1160px;margin:0 auto;padding:56px 24px 80px">
+  <h1 style="font-family:Nunito,sans-serif;font-weight:900;font-size:42px;margin:0 0 12px">Agenda de eventos</h1>
+  <p style="font-size:17px;color:#6f675f;margin:0 0 36px">Próximos eventos, oficinas e datas importantes.</p>
+  <div style="display:grid;gap:18px">
+    <sc-for list="{{ eventos }}" as="e" hint-placeholder-count="3">
+      <div style="background:#fff;border-radius:18px;border:1px solid rgba(0,0,0,.07);padding:20px 24px;display:flex;gap:22px;align-items:center" style-hover="box-shadow:0 8px 24px rgba(0,0,0,.08)">
+        <div style="flex:none;width:70px;text-align:center;background: {{ e.corBg }};border-radius:14px;padding:10px 0">
+          <div style="font-family:Nunito,sans-serif;font-weight:900;font-size:26px;color: {{ e.cor }}">{{ e.dia }}</div>
+          <div style="font-size:12px;font-weight:700;color: {{ e.cor }};text-transform:uppercase">{{ e.mes }}</div>
+        </div>
+        <img src="{{ e.img }}" alt="{{ e.titulo }}" style="flex:none;width:110px;height:74px;object-fit:cover;border-radius:12px">
+        <div style="flex:1">
+          <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:18px">{{ e.titulo }}</div>
+          <div style="font-size:14px;color:#6f675f;margin-top:3px">{{ e.desc }}</div>
+        </div>
+        <div style="flex:none;font-size:13px;font-weight:700;color:#2e6fb7">{{ e.hora }}</div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ PARCEIROS ============ -->
+<sc-if value="{{ isParceiros }}">
+<div data-screen-label="Parceiros" style="max-width:1160px;margin:0 auto;padding:56px 24px 80px">
+  <h1 style="font-family:Nunito,sans-serif;font-weight:900;font-size:42px;margin:0 0 12px">Parceiros</h1>
+  <p style="font-size:17px;color:#6f675f;margin:0 0 40px;max-width:600px;line-height:1.6">Nada disso seria possível sem quem caminha conosco. Conheça as instituições que apoiam nosso trabalho.</p>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+    <sc-for list="{{ parceiros }}" as="p" hint-placeholder-count="8">
+      <div style="background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:16px;height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+        <div style="width:44px;height:44px;border-radius:10px;background:repeating-linear-gradient(45deg,#f0ede8,#f0ede8 6px,#faf8f5 6px,#faf8f5 12px)"></div>
+        <div style="font-family:ui-monospace,monospace;font-size:11px;color:#a09a91">{{ p }}</div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ EDITAIS ============ -->
+<sc-if value="{{ isEditais }}">
+<div data-screen-label="Editais" style="max-width:1000px;margin:0 auto;padding:56px 24px 80px">
+  <h1 style="font-family:Nunito,sans-serif;font-weight:900;font-size:42px;margin:0 0 12px">Editais</h1>
+  <p style="font-size:17px;color:#6f675f;margin:0 0 32px">Editais de compra, prestação de serviços e processos seletivos em andamento.</p>
+  <div style="display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap">
+    <sc-for list="{{ abasEditais }}" as="a" hint-placeholder-count="3">
+      <div onClick="{{ a.go }}" style="padding:10px 20px;border-radius:999px;font-size:14px;font-weight:700;cursor:pointer;background: {{ a.bg }};color: {{ a.color }};border:1.5px solid {{ a.border }}">{{ a.label }}</div>
+    </sc-for>
+  </div>
+  <div style="display:grid;gap:12px">
+    <sc-for list="{{ editaisFiltrados }}" as="ed" hint-placeholder-count="4">
+      <div style="background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:16px;padding:18px 22px;display:flex;align-items:center;gap:18px" style-hover="box-shadow:0 6px 18px rgba(0,0,0,.07)">
+        <div style="flex:none;width:44px;height:44px;border-radius:12px;background:rgba(209,58,65,.1);color:#d13a41;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px">PDF</div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:15.5px">{{ ed.nome }}</div>
+          <div style="font-size:13px;color:#6f675f;margin-top:2px">Publicado em {{ ed.data }} · {{ ed.tamanho }}</div>
+        </div>
+        <div style="flex:none;background: {{ ed.statusBg }};color: {{ ed.statusColor }};font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px">{{ ed.status }}</div>
+        <div style="flex:none;color:#2e6fb7;font-weight:700;font-size:14px;cursor:pointer">Baixar ↓</div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ TRANSPARÊNCIA ============ -->
+<sc-if value="{{ isTransparencia }}">
+<div data-screen-label="Transparência" style="max-width:1160px;margin:0 auto;padding:56px 24px 80px">
+  <h1 style="font-family:Nunito,sans-serif;font-weight:900;font-size:42px;margin:0 0 12px">Transparência</h1>
+  <p style="font-size:17px;color:#6f675f;margin:0 0 40px;max-width:620px;line-height:1.6">Prestamos contas de tudo o que fazemos. Acesse nossos documentos institucionais, convênios, planos de trabalho e relatórios.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px">
+    <sc-for list="{{ transparencia }}" as="t" hint-placeholder-count="4">
+      <div style="background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:20px;padding:26px 28px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:10px;height:32px;border-radius:99px;background: {{ t.cor }}"></div>
+          <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:19px">{{ t.categoria }}</div>
+        </div>
+        <div style="display:grid;gap:8px">
+          <sc-for list="{{ t.docs }}" as="doc" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:#faf8f5;cursor:pointer" style-hover="background:#f0ede8">
+              <div style="flex:none;font-size:11px;font-weight:800;color:#d13a41">PDF</div>
+              <div style="flex:1;font-size:14px;font-weight:600">{{ doc }}</div>
+              <div style="flex:none;color:#2e6fb7;font-size:13px;font-weight:700">↓</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ DOAR ============ -->
+<sc-if value="{{ isDoar }}">
+<div data-screen-label="Doe aqui" style="max-width:900px;margin:0 auto;padding:56px 24px 80px">
+  <h1 style="font-family:Nunito,sans-serif;font-weight:900;font-size:42px;margin:0 0 12px">Doe aqui <span style="color:#ee7623">♥</span></h1>
+  <p style="font-size:17px;color:#6f675f;margin:0 0 40px;max-width:600px;line-height:1.6">Sua doação mantém nossos cursos 100% gratuitos e transforma vidas em Londrina. Qualquer valor faz diferença.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px">
+    <div style="background:#fff;border-radius:20px;padding:30px;border-top:6px solid #62b32e">
+      <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:22px;margin-bottom:16px">PIX</div>
+      <div style="background:#faf8f5;border-radius:14px;padding:18px;text-align:center;margin-bottom:16px">
+        <div style="width:140px;height:140px;margin:0 auto 12px;border-radius:12px;background:repeating-linear-gradient(45deg,#e8e4dd,#e8e4dd 5px,#faf8f5 5px,#faf8f5 10px);display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:11px;color:#a09a91">QR code PIX</div>
+        <div style="font-size:13px;color:#6f675f">Chave PIX (CNPJ)</div>
+        <div style="font-family:ui-monospace,monospace;font-weight:700;font-size:16px;margin-top:4px">00.000.000/0001-00</div>
+      </div>
+      <div style="text-align:center;font-size:13px;color:#6f675f">Escaneie o QR code ou copie a chave</div>
+    </div>
+    <div style="background:#fff;border-radius:20px;padding:30px;border-top:6px solid #2e6fb7">
+      <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:22px;margin-bottom:16px">Transferência bancária</div>
+      <div style="display:grid;gap:12px;font-size:15px">
+        <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#faf8f5;border-radius:10px"><span style="color:#6f675f">Banco</span><b>Caixa Econômica Federal</b></div>
+        <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#faf8f5;border-radius:10px"><span style="color:#6f675f">Agência</span><b>0000</b></div>
+        <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#faf8f5;border-radius:10px"><span style="color:#6f675f">Conta</span><b>00000-0</b></div>
+        <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#faf8f5;border-radius:10px"><span style="color:#6f675f">Titular</span><b>Clube das Mães Unidas</b></div>
+      </div>
+      <div style="margin-top:18px;font-size:13px;color:#6f675f;line-height:1.5">Após doar, envie o comprovante pelo WhatsApp <b>(43) 3325-6488</b> para receber nosso agradecimento.</div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ CONTATO ============ -->
+<sc-if value="{{ isContato }}">
+<div data-screen-label="Contato" style="max-width:1000px;margin:0 auto;padding:56px 24px 80px">
+  <h1 style="font-family:Nunito,sans-serif;font-weight:900;font-size:42px;margin:0 0 12px">Contato</h1>
+  <p style="font-size:17px;color:#6f675f;margin:0 0 40px">Fale com a gente — teremos prazer em atender você.</p>
+  <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:28px">
+    <div style="display:grid;gap:14px;align-content:start">
+      <div style="background:#fff;border-radius:16px;padding:20px 24px;border-left:5px solid #2e6fb7"><div style="font-weight:800;font-family:Nunito,sans-serif;margin-bottom:4px">Endereço</div><div style="font-size:14.5px;color:#6f675f;line-height:1.5">R. Roseiral, 77 – Jd. Interlagos<br>86035-330 – Londrina/PR</div></div>
+      <div style="background:#fff;border-radius:16px;padding:20px 24px;border-left:5px solid #62b32e"><div style="font-weight:800;font-family:Nunito,sans-serif;margin-bottom:4px">Telefone / WhatsApp</div><div style="font-size:14.5px;color:#6f675f">(43) 3325-6488</div></div>
+      <div style="background:#fff;border-radius:16px;padding:20px 24px;border-left:5px solid #ee7623"><div style="font-weight:800;font-family:Nunito,sans-serif;margin-bottom:4px">Redes sociais</div><div style="font-size:14.5px;color:#6f675f">@clubedasmaesunidas<br>facebook.com/clubedasmaesunidas</div></div>
+    </div>
+    <div style="background:#fff;border-radius:20px;padding:30px;border:1px solid rgba(0,0,0,.07)">
+      <sc-if value="{{ formEnviado }}">
+        <div style="text-align:center;padding:60px 20px">
+          <div style="font-size:44px;margin-bottom:12px">✓</div>
+          <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:22px;color:#62b32e">Mensagem enviada!</div>
+          <div style="font-size:14.5px;color:#6f675f;margin-top:8px">Retornaremos em breve. Obrigado pelo contato.</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ formNaoEnviado }}" hint-placeholder-val="{{ true }}">
+        <div style="display:grid;gap:14px">
+          <input placeholder="Seu nome" style="padding:13px 16px;border-radius:12px;border:1.5px solid rgba(0,0,0,.12);font-size:15px;outline:none" style-focus="border-color:#2e6fb7">
+          <input placeholder="Seu e-mail ou telefone" style="padding:13px 16px;border-radius:12px;border:1.5px solid rgba(0,0,0,.12);font-size:15px;outline:none" style-focus="border-color:#2e6fb7">
+          <textarea placeholder="Sua mensagem" rows="5" style="padding:13px 16px;border-radius:12px;border:1.5px solid rgba(0,0,0,.12);font-size:15px;outline:none;resize:vertical" style-focus="border-color:#2e6fb7"></textarea>
+          <div onClick="{{ enviarForm }}" style="background:#2e6fb7;color:#fff;text-align:center;font-family:Nunito,sans-serif;font-weight:800;font-size:16px;padding:13px;border-radius:12px;cursor:pointer" style-hover="background:#245c9c">Enviar mensagem</div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ FOOTER ============ -->
+<div data-screen-label="Footer" style="background:#26333f;color:#fff;margin-top:auto">
+  <div style="max-width:1160px;margin:0 auto;padding:52px 24px 32px;display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:40px">
+    <div>
+      <img src="uploads/logo-dark-theme.png" alt="Clube das Mães Unidas" style="height:64px;object-fit:contain;margin-bottom:16px">
+      <div style="font-size:14px;color:rgba(255,255,255,.7);line-height:1.7">R. Roseiral, 77 – Jd. Interlagos<br>86035-330 – Londrina/PR<br>Telefone: (43) 3325-6488</div>
+    </div>
+    <div>
+      <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:15px;margin-bottom:14px">Acesso rápido</div>
+      <div style="display:grid;gap:9px;font-size:14px">
+        <div onClick="{{ goSobre }}" style="color:rgba(255,255,255,.7);cursor:pointer" style-hover="color:#fff">Sobre nós</div>
+        <div onClick="{{ goProjetos }}" style="color:rgba(255,255,255,.7);cursor:pointer" style-hover="color:#fff">Projetos</div>
+        <div onClick="{{ goCursos }}" style="color:rgba(255,255,255,.7);cursor:pointer" style-hover="color:#fff">Cursos</div>
+        <div onClick="{{ goTransparencia }}" style="color:rgba(255,255,255,.7);cursor:pointer" style-hover="color:#fff">Transparência</div>
+      </div>
+    </div>
+    <div>
+      <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:15px;margin-bottom:14px">Siga nossas redes</div>
+      <div style="display:flex;gap:10px">
+        <div style="width:38px;height:38px;border-radius:99px;background:#2e6fb7;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;cursor:pointer">f</div>
+        <div style="width:38px;height:38px;border-radius:99px;background:#d13a41;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;cursor:pointer">ig</div>
+        <div style="width:38px;height:38px;border-radius:99px;background:#62b32e;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;cursor:pointer">wa</div>
+      </div>
+    </div>
+  </div>
+  <div style="border-top:1px solid rgba(255,255,255,.12)">
+    <div style="max-width:1160px;margin:0 auto;padding:18px 24px;font-size:13px;color:rgba(255,255,255,.55);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span>© 2026 Clube das Mães Unidas</span>
+      <span>Termos de uso · Política de Privacidade</span>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;paginaInicialFixa&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;&quot;, &quot;home&quot;, &quot;sobre&quot;, &quot;projetos&quot;, &quot;cursos&quot;, &quot;eventos&quot;, &quot;parceiros&quot;, &quot;editais&quot;, &quot;transparencia&quot;, &quot;contato&quot;, &quot;doar&quot;], &quot;default&quot;: &quot;&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Navegação&quot;}}">
+class Component extends DCLogic {
+  state = { page: 'home', filtroCurso: 'todos', abaEdital: 'compra', enviado: false };
+
+  go(page) { this.setState({ page }); try { window.scrollTo(0, 0); } catch (e) {} }
+
+  renderVals() {
+    const C = { verde: '#62b32e', azul: '#2e6fb7', laranja: '#ee7623', vermelho: '#d13a41' };
+    const page = this.props.paginaInicialFixa ? this.props.paginaInicialFixa : this.state.page;
+
+    const navDefs = [
+      ['home', 'Início'], ['sobre', 'Sobre nós'], ['projetos', 'Projetos'],
+      ['cursos', 'Cursos'], ['eventos', 'Eventos'], ['parceiros', 'Parceiros'],
+      ['editais', 'Editais'], ['transparencia', 'Transparência'], ['contato', 'Contato']
+    ];
+    const navItems = navDefs.map(([key, label]) => ({
+      label,
+      go: () => this.go(key),
+      weight: page === key ? 800 : 600,
+      color: page === key ? '#2e6fb7' : '#5a544d',
+      bg: page === key ? 'rgba(46,111,183,.1)' : 'transparent'
+    }));
+
+    const wix = (id, w, h) => `https://static.wixstatic.com/media/${id}/v1/fill/w_${w},h_${h},al_c,q_85/img.jpg`;
+    const imgPadaria = wix('11062b_ac6b9ad9218741a48da2ef38594c9232~mv2.jpg', 600, 400);
+    const imgMesa = wix('11062b_a78f37611bc24c84836a48d6076c04b1~mv2.jpg', 600, 400);
+    const imgMarmita = wix('11062b_7349016b10fa463bb6ea2bf2286b161a~mv2.jpeg', 600, 400);
+    const imgDoces = wix('04c518_79c28ee490c04ef5937e73dee26ac7aa~mv2.png', 600, 400);
+    const imgJuntos = wix('11062b_1bae4c1b9e17401eb83214230196c28c~mv2.jpg', 600, 400);
+
+    const destaques = [
+      { titulo: 'Padaria', tag: 'CURSO · INSCRIÇÕES ABERTAS', tagColor: C.verde, img: imgPadaria },
+      { titulo: 'Mesa posta', tag: 'CURSO · INSCRIÇÕES ABERTAS', tagColor: C.verde, img: imgMesa },
+      { titulo: 'Marmitaria — Comida caseira', tag: 'CURSO · EM ANDAMENTO', tagColor: C.azul, img: imgMarmita }
+    ];
+
+    // ---- Cursos (formato espelha a tabela `cursos` do Supabase) ----
+    const cursosDB = [
+      { titulo: 'Padaria Artesanal', professor: 'Maria Aparecida', inicio: '2026-08-03', fim: '2026-10-30', periodo: 'manha', dia_semana: ['seg', 'qua'], vagas: 20, qtd_alunos_iniciaram: 6, carga_horaria_total: 120, inscricoes_ativa: true, is_planejado: false, img: imgPadaria },
+      { titulo: 'Mesa Posta e Etiqueta', professor: 'Sônia Ribeiro', inicio: '2026-08-10', fim: '2026-09-28', periodo: 'tarde', dia_semana: ['ter', 'qui'], vagas: 16, qtd_alunos_iniciaram: 9, carga_horaria_total: 60, inscricoes_ativa: true, is_planejado: false, img: imgMesa },
+      { titulo: 'Marmitaria — Comida Caseira', professor: 'Cleusa Martins', inicio: '2026-06-01', fim: '2026-08-21', periodo: 'manha', dia_semana: ['seg', 'ter', 'qua'], vagas: 18, qtd_alunos_iniciaram: 18, carga_horaria_total: 140, inscricoes_ativa: false, is_planejado: false, img: imgMarmita },
+      { titulo: 'Doces Personalizados', professor: 'Ana Paula Souza', inicio: '2026-09-01', fim: '2026-10-15', periodo: 'tarde', dia_semana: ['sex'], vagas: 15, qtd_alunos_iniciaram: 4, carga_horaria_total: 40, inscricoes_ativa: true, is_planejado: false, img: imgDoces },
+      { titulo: 'Informática Básica', professor: 'Carlos Eduardo', inicio: '2026-10-05', fim: '2026-12-11', periodo: 'noite', dia_semana: ['seg', 'qua'], vagas: 24, qtd_alunos_iniciaram: 0, carga_horaria_total: 80, inscricoes_ativa: false, is_planejado: true, img: imgJuntos },
+      { titulo: 'Corte e Costura', professor: 'Ivone Prado', inicio: '2026-05-04', fim: '2026-08-28', periodo: 'tarde', dia_semana: ['ter', 'qui', 'sex'], vagas: 12, qtd_alunos_iniciaram: 12, carga_horaria_total: 160, inscricoes_ativa: false, is_planejado: false, img: imgJuntos }
+    ];
+
+    const DIAS = { seg: 'Seg', ter: 'Ter', qua: 'Qua', qui: 'Qui', sex: 'Sex', sab: 'Sáb' };
+    const PERIODOS = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' };
+    const fmtData = (iso) => { const [y, m, d] = iso.split('-'); return `${d}/${m}/${y.slice(2)}`; };
+    const statusDe = (c) => c.is_planejado ? 'planejado' : (c.inscricoes_ativa ? 'inscricoes' : 'andamento');
+    const STATUS = {
+      inscricoes: { label: 'Inscrições abertas', bg: C.verde },
+      andamento: { label: 'Em andamento', bg: C.azul },
+      planejado: { label: 'Em breve', bg: C.laranja }
+    };
+
+    const f = this.state.filtroCurso;
+    const cursosFiltrados = cursosDB
+      .filter(c => f === 'todos' || statusDe(c) === f)
+      .map(c => {
+        const st = statusDe(c);
+        const insc = c.qtd_alunos_iniciaram || 0;
+        return {
+          titulo: c.titulo, professor: c.professor, img: c.img,
+          dias: c.dia_semana.map(d => DIAS[d]).join(' · '),
+          periodoLabel: PERIODOS[c.periodo],
+          carga: c.carga_horaria_total,
+          datas: `De ${fmtData(c.inicio)} a ${fmtData(c.fim)}`,
+          statusLabel: STATUS[st].label, statusBg: STATUS[st].bg,
+          vagasLabel: `${Math.max(c.vagas - insc, 0)} de ${c.vagas} disponíveis`,
+          barPct: Math.round((insc / c.vagas) * 100) + '%',
+          aberto: st === 'inscricoes'
+        };
+      });
+
+    const filtroDefs = [['todos', 'Todos'], ['inscricoes', 'Inscrições abertas'], ['andamento', 'Em andamento'], ['planejado', 'Em breve']];
+    const filtros = filtroDefs.map(([key, label]) => ({
+      label, go: () => this.setState({ filtroCurso: key }),
+      bg: f === key ? '#2e6fb7' : '#fff',
+      color: f === key ? '#fff' : '#5a544d',
+      border: f === key ? '#2e6fb7' : 'rgba(0,0,0,.12)'
+    }));
+
+    // ---- Eventos ----
+    const eventos = [
+      { dia: '15', mes: 'jul', titulo: 'Curso de doces personalizados — aula aberta', desc: 'Demonstração gratuita para a comunidade conhecer o curso.', hora: '14h00', img: imgDoces, cor: C.laranja, corBg: 'rgba(238,118,35,.12)' },
+      { dia: '03', mes: 'ago', titulo: 'Início das turmas de Padaria Artesanal', desc: 'Primeiro dia de aula da nova turma. Traga seus documentos.', hora: '08h30', img: imgPadaria, cor: C.verde, corBg: 'rgba(98,179,46,.12)' },
+      { dia: '22', mes: 'ago', titulo: 'Feira de geração de renda', desc: 'Venda de produtos feitos pelas alunas e ex-alunas dos cursos.', hora: '09h00', img: imgJuntos, cor: C.azul, corBg: 'rgba(46,111,183,.12)' },
+      { dia: '12', mes: 'set', titulo: 'Formatura — Marmitaria Comida Caseira', desc: 'Entrega de certificados da turma 2026.1.', hora: '19h00', img: imgMarmita, cor: C.vermelho, corBg: 'rgba(209,58,65,.12)' }
+    ];
+
+    // ---- Editais ----
+    const editaisDB = [
+      { cat: 'compra', nome: 'Edital de compra 01/2026 — Gêneros alimentícios', data: '02/06/2026', tamanho: '1,2 MB', status: 'Aberto', statusBg: 'rgba(98,179,46,.12)', statusColor: '#4a8c20' },
+      { cat: 'compra', nome: 'Edital de compra 02/2026 — Equipamentos de cozinha', data: '20/06/2026', tamanho: '860 KB', status: 'Aberto', statusBg: 'rgba(98,179,46,.12)', statusColor: '#4a8c20' },
+      { cat: 'compra', nome: 'Edital de compra 04/2025 — Material didático', data: '11/11/2025', tamanho: '640 KB', status: 'Encerrado', statusBg: 'rgba(0,0,0,.07)', statusColor: '#6f675f' },
+      { cat: 'servicos', nome: 'Edital 01/2026 — Prestação de serviços contábeis', data: '15/05/2026', tamanho: '720 KB', status: 'Aberto', statusBg: 'rgba(98,179,46,.12)', statusColor: '#4a8c20' },
+      { cat: 'servicos', nome: 'Edital 03/2025 — Serviços de manutenção predial', data: '02/09/2025', tamanho: '540 KB', status: 'Encerrado', statusBg: 'rgba(0,0,0,.07)', statusColor: '#6f675f' },
+      { cat: 'seletivo', nome: 'Processo seletivo 02/2026 — Instrutor(a) de informática', data: '01/07/2026', tamanho: '380 KB', status: 'Aberto', statusBg: 'rgba(98,179,46,.12)', statusColor: '#4a8c20' },
+      { cat: 'seletivo', nome: 'Processo seletivo 01/2026 — Assistente social', data: '10/03/2026', tamanho: '410 KB', status: 'Encerrado', statusBg: 'rgba(0,0,0,.07)', statusColor: '#6f675f' }
+    ];
+    const aba = this.state.abaEdital;
+    const abaDefs = [['compra', 'Editais de compra'], ['servicos', 'Prestação de serviços'], ['seletivo', 'Processo seletivo']];
+    const abasEditais = abaDefs.map(([key, label]) => ({
+      label, go: () => this.setState({ abaEdital: key }),
+      bg: aba === key ? '#d13a41' : '#fff',
+      color: aba === key ? '#fff' : '#5a544d',
+      border: aba === key ? '#d13a41' : 'rgba(0,0,0,.12)'
+    }));
+    const editaisFiltrados = editaisDB.filter(e => e.cat === aba);
+
+    // ---- Transparência ----
+    const transparencia = [
+      { categoria: 'Documentos institucionais', cor: C.azul, docs: ['Estatuto social', 'Ata de eleição da diretoria', 'CNPJ — Cartão', 'Certificado CEBAS'] },
+      { categoria: 'Convênios', cor: C.verde, docs: ['Convênio Prefeitura de Londrina 2026', 'Termo de colaboração SCFV 2025–2026'] },
+      { categoria: 'Plano de trabalho', cor: C.laranja, docs: ['Plano de trabalho 2026', 'Plano de trabalho 2025'] },
+      { categoria: 'Relatório de atividades', cor: C.vermelho, docs: ['Relatório de atividades 2025', 'Relatório de atividades 2024', 'Relatório financeiro 2025'] }
+    ];
+
+    const parceiros = ['logo do parceiro', 'logo do parceiro', 'logo do parceiro', 'logo do parceiro', 'logo do parceiro', 'logo do parceiro', 'logo do parceiro', 'logo do parceiro'];
+
+    return {
+      navItems, destaques, cursosFiltrados, filtros, eventos,
+      abasEditais, editaisFiltrados, transparencia, parceiros,
+      isHome: page === 'home', isSobre: page === 'sobre', isProjetos: page === 'projetos',
+      isCursos: page === 'cursos', isEventos: page === 'eventos', isParceiros: page === 'parceiros',
+      isEditais: page === 'editais', isTransparencia: page === 'transparencia',
+      isContato: page === 'contato', isDoar: page === 'doar',
+      formEnviado: this.state.enviado, formNaoEnviado: !this.state.enviado,
+      enviarForm: () => this.setState({ enviado: true }),
+      goHome: () => this.go('home'), goSobre: () => this.go('sobre'), goProjetos: () => this.go('projetos'),
+      goCursos: () => this.go('cursos'), goEventos: () => this.go('eventos'), goContato: () => this.go('contato'),
+      goDoar: () => this.go('doar'), goTransparencia: () => this.go('transparencia')
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f4f1ec;font-family:'Nunito Sans',sans-serif;color:#2b2622;}
+a{color:#2e6fb7;text-decoration:none;}
+a:hover{color:#ee7623;}
+*{box-sizing:border-box;}
+input,textarea,select{font-family:'Nunito Sans',sans-serif;}
+</style>
+</helmet>
+
+<div style="display:flex;min-height:100vh">
+
+  <!-- ===== SIDEBAR ===== -->
+  <div data-screen-label="Sidebar" style="flex:none;width:240px;background:#26333f;color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh">
+    <div style="padding:22px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.1)">
+      <img src="uploads/logo-cmu.png" alt="" style="width:36px;height:36px;object-fit:contain;background:#fff;border-radius:9px;padding:3px">
+      <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:13px;line-height:1.2">Clube das Mães<br>Unidas · <span style="color:#ee7623">Admin</span></div>
+    </div>
+    <nav style="padding:14px 12px;display:grid;gap:4px">
+      <sc-for list="{{ menu }}" as="m" hint-placeholder-count="5">
+        <div onClick="{{ m.go }}" style="display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:11px;cursor:pointer;font-size:14px;font-weight:{{ m.weight }};color: {{ m.color }};background: {{ m.bg }}" style-hover="background:rgba(255,255,255,.08)">
+          <span style="font-size:16px">{{ m.icone }}</span>{{ m.label }}
+        </div>
+      </sc-for>
+    </nav>
+    <div style="margin-top:auto;padding:18px 20px;border-top:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:10px">
+      <div style="width:34px;height:34px;border-radius:99px;background:#62b32e;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">HT</div>
+      <div><div style="font-size:13px;font-weight:700">Hélio Terzoni</div><div style="font-size:11.5px;color:rgba(255,255,255,.5)">Administrador</div></div>
+    </div>
+  </div>
+
+  <!-- ===== CONTEÚDO ===== -->
+  <div style="flex:1;min-width:0;padding:32px 36px">
+
+    <!-- ===== VISÃO GERAL ===== -->
+    <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
+    <div data-screen-label="Visão geral">
+      <h1 style="font-family:Nunito,sans-serif;font-weight:900;font-size:28px;margin:0 0 4px">Bom dia, Hélio 👋</h1>
+      <p style="color:#6f675f;font-size:15px;margin:0 0 28px">Aqui está o resumo do site hoje, 13 de julho.</p>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+          <div style="background:#fff;border-radius:16px;padding:20px 22px;border-top:4px solid {{ s.cor }}">
+            <div style="font-size:13px;font-weight:700;color:#6f675f">{{ s.label }}</div>
+            <div style="font-family:Nunito,sans-serif;font-weight:900;font-size:30px;margin-top:4px">{{ s.valor }}</div>
+            <div style="font-size:12.5px;color:#6f675f;margin-top:2px">{{ s.sub }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px">
+        <div style="background:#fff;border-radius:18px;padding:24px 26px">
+          <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:17px;margin-bottom:14px">Atividade recente</div>
+          <div style="display:grid;gap:2px">
+            <sc-for list="{{ atividades }}" as="a" hint-placeholder-count="4">
+              <div style="display:flex;gap:12px;align-items:center;padding:10px 4px;border-bottom:1px solid rgba(0,0,0,.05)">
+                <div style="flex:none;width:8px;height:8px;border-radius:99px;background: {{ a.cor }}"></div>
+                <div style="flex:1;font-size:14px">{{ a.texto }}</div>
+                <div style="flex:none;font-size:12.5px;color:#a09a91">{{ a.quando }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:18px;padding:24px 26px">
+          <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:17px;margin-bottom:14px">Ações rápidas</div>
+          <div style="display:grid;gap:10px">
+            <div onClick="{{ goEventosNovo }}" style="background:rgba(46,111,183,.08);color:#2e6fb7;font-weight:700;font-size:14px;padding:13px 16px;border-radius:12px;cursor:pointer" style-hover="background:rgba(46,111,183,.15)">+ Novo evento</div>
+            <div onClick="{{ goArquivosNovo }}" style="background:rgba(209,58,65,.08);color:#d13a41;font-weight:700;font-size:14px;padding:13px 16px;border-radius:12px;cursor:pointer" style-hover="background:rgba(209,58,65,.15)">+ Publicar edital ou arquivo</div>
+            <div onClick="{{ goCursosAdmin }}" style="background:rgba(98,179,46,.08);color:#4a8c20;font-weight:700;font-size:14px;padding:13px 16px;border-radius:12px;cursor:pointer" style-hover="background:rgba(98,179,46,.15)">Ver cursos (Supabase)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ===== EVENTOS ===== -->
+    <sc-if value="{{ isEventos }}">
+    <div data-screen-label="Eventos">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+        <div>
+          <h1 style="font-family:Nunito,sans-serif;font-weight:900;font-size:28px;margin:0 0 4px">Eventos</h1>
+          <p style="color:#6f675f;font-size:14.5px;margin:0">Adicione, edite ou remova eventos da agenda. As fotos de cada evento são gerenciadas aqui.</p>
+        </div>
+        <div onClick="{{ abrirNovoEvento }}" style="background:#2e6fb7;color:#fff;font-family:Nunito,sans-serif;font-weight:800;font-size:14.5px;padding:12px 22px;border-radius:999px;cursor:pointer;box-shadow:0 3px 10px rgba(46,111,183,.3)" style-hover="background:#245c9c">+ Novo evento</div>
+      </div>
+      <div style="display:grid;gap:14px">
+        <sc-for list="{{ eventosAdmin }}" as="e" hint-placeholder-count="4">
+          <div style="background:#fff;border-radius:16px;padding:16px 20px;display:flex;gap:18px;align-items:center">
+            <img src="{{ e.img }}" alt="" style="flex:none;width:96px;height:64px;object-fit:cover;border-radius:10px">
+            <div style="flex:1;min-width:0">
+              <div style="font-family:Nunito,sans-serif;font-weight:800;font-size:16px">{{ e.titulo }}</div>
+              <div style="font-size:13.5px;color:#6f675f;margin-top:2px">{{ e.data }} · {{ e.hora }} · {{ e.fotos }} foto(s)</div>
+            </div>
+            <div style="flex:none;background: {{ e.statusBg }};color: {{ e.statusColor }};font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px">{{ e.status }}</div>
+            <div onClick="{{ e.editar }}" style="flex:none;color:#2e6fb7;font-weight:700;font-size:13.5px;cursor:pointer;padding:8px 12px;border-radius:9px" style-hover="background:rgba(46,111,183,.08)">Editar</div>
+            <div onClick="{{ e.remover }}" style="flex:none;color:#d13a41;font-weight:700;font-size:13.5px;cursor:pointer;padding:8px 12px;border-radius:9px" style-hover="background:rgba(209,58,65,.08)">Remover</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- Modal editar/novo evento -->
+      <sc-if value="{{ modalEvento }}">
+        <div style="position:fixed;inset:0;background:rgba(20,25,30,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px" onClick="{{ fecharModal }}">
+          <div style="background:#fff;border-radius:22px;width:620px;max-width:100%;max-height:90vh;overflow:auto;padding:32px" onClick="{{ pararClique }}">
+            <h2 style="font-family:Nunito,sans-serif;font-weight:900;font-size:22px;margin:0 0 22px">{{ tituloModal }}</h2>
+            <div style="display:grid;gap:14px">
+              <div><div style="font-size:13px;font-weight:700;margin-bottom:6px">Título do evento</div><input value="{{ formTitulo }}" onChange="{{ mudarTitulo }}" style="width:100%;padding:12px 14px;border-radius:11px;border:1.5px solid rgba(0,0,0,.13);font-size:15px;outline:none" style-focus="border-color:#2e6fb7"></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                <div><div style="font-size:13px;font-weight:700;margin-bottom:6px">Data</div><input value="{{ formData }}" onChange="{{ mudarData }}" placeholder="dd/mm/aaaa" style="width:100%;padding:12px 14px;border-radius:11px;border:1.5px solid rgba(0,0,0,.13);font-size:15px;outline:none" style-focus="border-color:#2e6fb7"></div>
+                <div><div style="font-size:13px;font-weight:700;margin-bottom:6px">Horário</div><input value="{{ formHora }}" onChange="{{ mudarHora }}" placeholder="14h00" style="width:100%;padding:12px 14px;border-radius:11px;border:1.5px solid rgba(0,0,0,.13);font-size:15px;outline:none" style-focus="border-color:#2e6fb7"></div>
+              </div>
+              <div><div style="font-size:13px;font-weight:700;margin-bottom:6px">Descrição</div><textarea rows="3" style="width:100%;padding:12px 14px;border-radius:11px;border:1.5px solid rgba(0,0,0,.13);font-size:15px;outline:none;resize:vertical" style-focus="border-color:#2e6fb7"></textarea></div>
+              <div>
+                <div style="font-size:13px;font-weight:700;margin-bottom:6px">Fotos do evento</div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap">
+                  <sc-for list="{{ fotosModal }}" as="ft" hint-placeholder-count="2">
+                    <div style="position:relative">
+                      <img src="{{ ft.img }}" alt="" style="width:110px;height:76px;object-fit:cover;border-radius:10px;display:block">
+                      <div onClick="{{ ft.remover }}" style="position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:99px;background:#d13a41;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.25)">✕</div>
+                    </div>
+                  </sc-for>
+                  <div onClick="{{ addFoto }}" style="width:110px;height:76px;border-radius:10px;border:2px dashed rgba(0,0,0,.18);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#a09a91;font-size:12px;font-weight:700;gap:2px" style-hover="border-color:#2e6fb7;color:#2e6fb7"><span style="font-size:18px">+</span>Adicionar</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px">
+                <div onClick="{{ fecharModal }}" style="padding:12px 24px;border-radius:999px;border:1.5px solid rgba(0,0,0,.13);font-weight:700;font-size:14px;cursor:pointer" style-hover="border-color:#6f675f">Cancelar</div>
+                <div onClick="{{ salvarEvento }}" style="padding:12px 28px;border-radius:999px;background:#62b32e;color:#fff;font-family:Nunito,sans-serif;font-weight:800;font-size:14px;cursor:pointer" style-hover="background:#52991f">Salvar evento</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+    </sc-if>
+
+    <!-- ===== EDITAIS E ARQUIVOS ===== -->
+    <sc-if value="{{ isArquivos }}">
+    <div data-screen-label="Editais e arquivos">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+        <div>
+          <h1 style="font-family:Nunito,sans-serif;font-weight:900;font-size:28px;margin:0 0 4px">Editais e arquivos</h1>
+          <p style="color:#6f675f;font-size:14.5px;margin:0">Publique ou remova editais, documentos de transparência e outros arquivos.</p>
+        </div>
+        <div onClick="{{ abrirUpload }}" style="background:#d13a41;color:#fff;font-family:Nunito,sans-serif;font-weight:800;font-size:14.5px;padding:12px 22px;border-radius:999px;cursor:pointer;box-shadow:0 3px 10px rgba(209,58,65,.3)" style-hover="background:#b52c34">+ Publicar arquivo</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+        <sc-for list="{{ abasArquivos }}" as="ab" hint-placeholder-count="4">
+          <div onClick="{{ ab.go }}" style="padding:9px 18px;border-radius:999px;font-size:13.5px;font-weight:700;cursor:pointer;background: {{ ab.bg }};color: {{ ab.color }};border:1.5px solid {{ ab.border }}">{{ ab.label }}</div>
+        </sc-for>
+      </div>
+      <div style="display:grid;gap:10px">
+        <sc-for list="{{ arquivosFiltrados }}" as="ar" hint-placeholder-count="5">
+          <div style="background:#fff;border-radius:14px;padding:15px 20px;display:flex;align-items:center;gap:16px">
+            <div style="flex:none;width:40px;height:40px;border-radius:10px;background:rgba(209,58,65,.1);color:#d13a41;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:10.5px">{{ ar.tipo }}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:14.5px">{{ ar.nome }}</div>
+              <div style="font-size:12.5px;color:#6f675f;margin-top:1px">{{ ar.categoria }} · {{ ar.data }} · {{ ar.tamanho }}</div>
+            </div>
+            <div style="flex:none;color:#2e6fb7;font-weight:700;font-size:13px;cursor:pointer;padding:7px 11px;border-radius:8px" style-hover="background:rgba(46,111,183,.08)">Baixar</div>
+            <div onClick="{{ ar.remover }}" style="flex:none;color:#d13a41;font-weight:700;font-size:13px;cursor:pointer;padding:7px 11px;border-radius:8px" style-hover="background:rgba(209,58,65,.08)">Remover</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- Modal upload -->
+      <sc-if value="{{ modalUpload }}">
+        <div style="position:fixed;inset:0;background:rgba(20,25,30,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px" onClick="{{ fecharModal }}">
+          <div style="background:#fff;border-radius:22px;width:560px;max-width:100%;padding:32px" onClick="{{ pararClique }}">
+            <h2 style="font-family:Nunito,sans-serif;font-weight:900;font-size:22px;margin:0 0 22px">Publicar arquivo</h2>
+            <div style="display:grid;gap:14px">
+              <div onClick="{{ simularUpload }}" style="border:2px dashed rgba(0,0,0,.18);border-radius:14px;padding:34px;text-align:center;cursor:pointer;background: {{ uploadBg }}" style-hover="border-color:#2e6fb7">
+                <div style="font-size:28px;margin-bottom:6px">{{ uploadIcone }}</div>
+                <div style="font-weight:700;font-size:14.5px;color:#5a544d">{{ uploadTexto }}</div>
+                <div style="font-size:12.5px;color:#a09a91;margin-top:4px">PDF, DOC, XLS ou imagem · até 20 MB</div>
+              </div>
+              <div><div style="font-size:13px;font-weight:700;margin-bottom:6px">Nome de exibição</div><input value="{{ formArquivoNome }}" onChange="{{ mudarArquivoNome }}" placeholder="Ex.: Edital de compra 03/2026" style="width:100%;padding:12px 14px;border-radius:11px;border:1.5px solid rgba(0,0,0,.13);font-size:15px;outline:none" style-focus="border-color:#2e6fb7"></div>
+              <div>
+                <div style="font-size:13px;font-weight:700;margin-bottom:6px">Categoria</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <sc-for list="{{ catsUpload }}" as="cu" hint-placeholder-count="4">
+                    <div onClick="{{ cu.go }}" style="padding:8px 15px;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;background: {{ cu.bg }};color: {{ cu.color }};border:1.5px solid {{ cu.border }}">{{ cu.label }}</div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px">
+                <div onClick="{{ fecharModal }}" style="padding:12px 24px;border-radius:999px;border:1.5px solid rgba(0,0,0,.13);font-weight:700;font-size:14px;cursor:pointer" style-hover="border-color:#6f675f">Cancelar</div>
+                <div onClick="{{ salvarArquivo }}" style="padding:12px 28px;border-radius:999px;background:#d13a41;color:#fff;font-family:Nunito,sans-serif;font-weight:800;font-size:14px;cursor:pointer" style-hover="background:#b52c34">Publicar</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+    </sc-if>
+
+    <!-- ===== CURSOS (SUPABASE) ===== -->
+    <sc-if value="{{ isCursosAdmin }}">
+    <div data-screen-label="Cursos (Supabase)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h1 style="font-family:Nunito,sans-serif;font-weight:900;font-size:28px;margin:0">Cursos</h1>
+        <div style="display:flex;align-items:center;gap:8px;background:rgba(98,179,46,.1);color:#4a8c20;font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px"><span style="width:8px;height:8px;border-radius:99px;background:#62b32e;display:inline-block"></span>Sincronizado com Supabase</div>
+      </div>
+      <p style="color:#6f675f;font-size:14.5px;margin:0 0 24px;max-width:640px;line-height:1.55">Os cursos são gerenciados no sistema de gestão (Supabase) e aparecem automaticamente no site. Aqui você controla apenas <b>o que fica visível</b> e se as <b>inscrições estão abertas</b>.</p>
+      <div style="background:#fff;border-radius:18px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr 110px 110px;gap:12px;padding:14px 22px;background:#faf8f5;font-size:12px;font-weight:800;color:#6f675f;text-transform:uppercase;letter-spacing:.04em">
+          <div>Curso</div><div>Professor</div><div>Período</div><div>Vagas</div><div>Inscrições</div><div>Visível no site</div>
+        </div>
+        <sc-for list="{{ cursosAdmin }}" as="c" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr 110px 110px;gap:12px;padding:16px 22px;border-top:1px solid rgba(0,0,0,.05);align-items:center">
+            <div>
+              <div style="font-weight:700;font-size:14.5px">{{ c.titulo }}</div>
+              <div style="font-size:12.5px;color:#a09a91">{{ c.datas }}</div>
+            </div>
+            <div style="font-size:14px;color:#5a544d">{{ c.professor }}</div>
+            <div style="font-size:14px;color:#5a544d">{{ c.periodo }}</div>
+            <div style="font-size:14px;color:#5a544d">{{ c.vagas }}</div>
+            <div onClick="{{ c.toggleInscricao }}" style="width:46px;height:26px;border-radius:99px;background: {{ c.inscBg }};position:relative;cursor:pointer;transition:background .15s">
+              <div style="position:absolute;top:3px;left: {{ c.inscKnob }};width:20px;height:20px;border-radius:99px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transition:left .15s"></div>
+            </div>
+            <div onClick="{{ c.toggleVisivel }}" style="width:46px;height:26px;border-radius:99px;background: {{ c.visBg }};position:relative;cursor:pointer;transition:background .15s">
+              <div style="position:absolute;top:3px;left: {{ c.visKnob }};width:20px;height:20px;border-radius:99px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transition:left .15s"></div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- Toast -->
+    <sc-if value="{{ temToast }}">
+      <div style="position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:#26333f;color:#fff;padding:13px 26px;border-radius:999px;font-size:14px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:200">{{ toast }}</div>
+    </sc-if>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    secao: 'dash',
+    modal: null, // 'evento' | 'upload'
+    editandoIdx: -1,
+    formTitulo: '', formData: '', formHora: '',
+    formArquivoNome: '', catUpload: 'compra', uploadFeito: false,
+    abaArquivo: 'todos',
+    toast: '',
+    eventos: [
+      { titulo: 'Curso de doces personalizados — aula aberta', data: '15/07/2026', hora: '14h00', imgKey: 'doces', fotos: ['doces', 'juntos'], futuro: true },
+      { titulo: 'Início das turmas de Padaria Artesanal', data: '03/08/2026', hora: '08h30', imgKey: 'padaria', fotos: ['padaria'], futuro: true },
+      { titulo: 'Feira de geração de renda', data: '22/08/2026', hora: '09h00', imgKey: 'juntos', fotos: ['juntos', 'mesa', 'padaria'], futuro: true },
+      { titulo: 'Formatura — turma Mesa Posta 2025.2', data: '12/12/2025', hora: '19h00', imgKey: 'mesa', fotos: ['mesa'], futuro: false }
+    ],
+    arquivos: [
+      { nome: 'Edital de compra 01/2026 — Gêneros alimentícios', categoria: 'Editais de compra', cat: 'compra', data: '02/06/2026', tamanho: '1,2 MB', tipo: 'PDF' },
+      { nome: 'Edital de compra 02/2026 — Equipamentos de cozinha', categoria: 'Editais de compra', cat: 'compra', data: '20/06/2026', tamanho: '860 KB', tipo: 'PDF' },
+      { nome: 'Edital 01/2026 — Prestação de serviços contábeis', categoria: 'Prestação de serviços', cat: 'servicos', data: '15/05/2026', tamanho: '720 KB', tipo: 'PDF' },
+      { nome: 'Processo seletivo 02/2026 — Instrutor(a) de informática', categoria: 'Processo seletivo', cat: 'seletivo', data: '01/07/2026', tamanho: '380 KB', tipo: 'PDF' },
+      { nome: 'Relatório de atividades 2025', categoria: 'Transparência', cat: 'transparencia', data: '28/02/2026', tamanho: '4,1 MB', tipo: 'PDF' },
+      { nome: 'Plano de trabalho 2026', categoria: 'Transparência', cat: 'transparencia', data: '15/01/2026', tamanho: '2,3 MB', tipo: 'PDF' }
+    ],
+    cursos: [
+      { titulo: 'Padaria Artesanal', datas: '03/08 – 30/10', professor: 'Maria Aparecida', periodo: 'Manhã', vagas: '14/20', insc: true, vis: true },
+      { titulo: 'Mesa Posta e Etiqueta', datas: '10/08 – 28/09', professor: 'Sônia Ribeiro', periodo: 'Tarde', vagas: '7/16', insc: true, vis: true },
+      { titulo: 'Marmitaria — Comida Caseira', datas: '01/06 – 21/08', professor: 'Cleusa Martins', periodo: 'Manhã', vagas: '0/18', insc: false, vis: true },
+      { titulo: 'Doces Personalizados', datas: '01/09 – 15/10', professor: 'Ana Paula Souza', periodo: 'Tarde', vagas: '11/15', insc: true, vis: true },
+      { titulo: 'Informática Básica', datas: '05/10 – 11/12', professor: 'Carlos Eduardo', periodo: 'Noite', vagas: '24/24', insc: false, vis: false },
+      { titulo: 'Corte e Costura', datas: '04/05 – 28/08', professor: 'Ivone Prado', periodo: 'Tarde', vagas: '0/12', insc: false, vis: true }
+    ]
+  };
+
+  avisar(msg) {
+    this.setState({ toast: msg });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ toast: '' }), 2600);
+  }
+
+  renderVals() {
+    const st = this.state;
+    const wix = (id, w, h) => `https://static.wixstatic.com/media/${id}/v1/fill/w_${w},h_${h},al_c,q_85/img.jpg`;
+    const IMGS = {
+      padaria: wix('11062b_ac6b9ad9218741a48da2ef38594c9232~mv2.jpg', 400, 280),
+      mesa: wix('11062b_a78f37611bc24c84836a48d6076c04b1~mv2.jpg', 400, 280),
+      marmita: wix('11062b_7349016b10fa463bb6ea2bf2286b161a~mv2.jpeg', 400, 280),
+      doces: wix('04c518_79c28ee490c04ef5937e73dee26ac7aa~mv2.png', 400, 280),
+      juntos: wix('11062b_1bae4c1b9e17401eb83214230196c28c~mv2.jpg', 400, 280)
+    };
+
+    const menuDefs = [
+      ['dash', '⌂', 'Visão geral'], ['eventos', '📅', 'Eventos e fotos'],
+      ['arquivos', '📄', 'Editais e arquivos'], ['cursos', '🎓', 'Cursos (Supabase)']
+    ];
+    const menu = menuDefs.map(([key, icone, label]) => ({
+      label, icone, go: () => this.setState({ secao: key }),
+      weight: st.secao === key ? 800 : 600,
+      color: st.secao === key ? '#fff' : 'rgba(255,255,255,.65)',
+      bg: st.secao === key ? 'rgba(255,255,255,.12)' : 'transparent'
+    }));
+
+    const stats = [
+      { label: 'Cursos visíveis no site', valor: String(st.cursos.filter(c => c.vis).length), sub: 'de ' + st.cursos.length + ' no Supabase', cor: '#62b32e' },
+      { label: 'Inscrições abertas', valor: String(st.cursos.filter(c => c.insc).length), sub: 'cursos recebendo inscrições', cor: '#2e6fb7' },
+      { label: 'Próximos eventos', valor: String(st.eventos.filter(e => e.futuro).length), sub: 'na agenda pública', cor: '#ee7623' },
+      { label: 'Arquivos publicados', valor: String(st.arquivos.length), sub: 'editais e documentos', cor: '#d13a41' }
+    ];
+
+    const atividades = [
+      { texto: 'Edital de compra 02/2026 publicado', quando: 'há 2 dias', cor: '#d13a41' },
+      { texto: 'Evento "Feira de geração de renda" criado', quando: 'há 4 dias', cor: '#2e6fb7' },
+      { texto: 'Inscrições abertas: Doces Personalizados', quando: 'há 1 semana', cor: '#62b32e' },
+      { texto: '3 fotos adicionadas ao evento de doces', quando: 'há 1 semana', cor: '#ee7623' }
+    ];
+
+    const eventosAdmin = st.eventos.map((e, i) => ({
+      titulo: e.titulo, data: e.data, hora: e.hora, img: IMGS[e.imgKey], fotos: e.fotos.length,
+      status: e.futuro ? 'Publicado' : 'Passado',
+      statusBg: e.futuro ? 'rgba(98,179,46,.12)' : 'rgba(0,0,0,.07)',
+      statusColor: e.futuro ? '#4a8c20' : '#6f675f',
+      editar: () => this.setState({ modal: 'evento', editandoIdx: i, formTitulo: e.titulo, formData: e.data, formHora: e.hora }),
+      remover: () => { this.setState({ eventos: st.eventos.filter((_, j) => j !== i) }); this.avisar('Evento removido'); }
+    }));
+
+    const ev = st.editandoIdx >= 0 ? st.eventos[st.editandoIdx] : null;
+    const fotosModal = (ev ? ev.fotos : []).map((key, fi) => ({
+      img: IMGS[key],
+      remover: () => {
+        const eventos = st.eventos.map((e, j) => j === st.editandoIdx ? { ...e, fotos: e.fotos.filter((_, k) => k !== fi) } : e);
+        this.setState({ eventos }); this.avisar('Foto removida');
+      }
+    }));
+
+    const abaDefs = [['todos', 'Todos'], ['compra', 'Editais de compra'], ['servicos', 'Prestação de serviços'], ['seletivo', 'Processo seletivo'], ['transparencia', 'Transparência']];
+    const abasArquivos = abaDefs.map(([key, label]) => ({
+      label, go: () => this.setState({ abaArquivo: key }),
+      bg: st.abaArquivo === key ? '#26333f' : '#fff',
+      color: st.abaArquivo === key ? '#fff' : '#5a544d',
+      border: st.abaArquivo === key ? '#26333f' : 'rgba(0,0,0,.12)'
+    }));
+    const arquivosFiltrados = st.arquivos
+      .map((a, i) => ({ ...a, remover: () => { this.setState({ arquivos: st.arquivos.filter((_, j) => j !== i) }); this.avisar('Arquivo removido'); } }))
+      .filter(a => st.abaArquivo === 'todos' || a.cat === st.abaArquivo);
+
+    const catDefs = [['compra', 'Edital de compra'], ['servicos', 'Prest. de serviços'], ['seletivo', 'Proc. seletivo'], ['transparencia', 'Transparência']];
+    const catsUpload = catDefs.map(([key, label]) => ({
+      label, go: () => this.setState({ catUpload: key }),
+      bg: st.catUpload === key ? '#d13a41' : '#fff',
+      color: st.catUpload === key ? '#fff' : '#5a544d',
+      border: st.catUpload === key ? '#d13a41' : 'rgba(0,0,0,.12)'
+    }));
+
+    const cursosAdmin = st.cursos.map((c, i) => ({
+      ...c,
+      inscBg: c.insc ? '#62b32e' : 'rgba(0,0,0,.18)', inscKnob: c.insc ? '23px' : '3px',
+      visBg: c.vis ? '#2e6fb7' : 'rgba(0,0,0,.18)', visKnob: c.vis ? '23px' : '3px',
+      toggleInscricao: () => { const cursos = st.cursos.map((x, j) => j === i ? { ...x, insc: !x.insc } : x); this.setState({ cursos }); this.avisar(c.insc ? 'Inscrições fechadas: ' + c.titulo : 'Inscrições abertas: ' + c.titulo); },
+      toggleVisivel: () => { const cursos = st.cursos.map((x, j) => j === i ? { ...x, vis: !x.vis } : x); this.setState({ cursos }); this.avisar(c.vis ? 'Curso oculto do site' : 'Curso visível no site'); }
+    }));
+
+    return {
+      menu, stats, atividades, eventosAdmin, fotosModal, abasArquivos, arquivosFiltrados, catsUpload, cursosAdmin,
+      isDash: st.secao === 'dash', isEventos: st.secao === 'eventos',
+      isArquivos: st.secao === 'arquivos', isCursosAdmin: st.secao === 'cursos',
+      modalEvento: st.modal === 'evento', modalUpload: st.modal === 'upload',
+      tituloModal: st.editandoIdx >= 0 ? 'Editar evento' : 'Novo evento',
+      formTitulo: st.formTitulo, formData: st.formData, formHora: st.formHora, formArquivoNome: st.formArquivoNome,
+      mudarTitulo: (e) => this.setState({ formTitulo: e.target.value }),
+      mudarData: (e) => this.setState({ formData: e.target.value }),
+      mudarHora: (e) => this.setState({ formHora: e.target.value }),
+      mudarArquivoNome: (e) => this.setState({ formArquivoNome: e.target.value }),
+      uploadFeito: st.uploadFeito,
+      uploadBg: st.uploadFeito ? 'rgba(98,179,46,.07)' : 'transparent',
+      uploadIcone: st.uploadFeito ? '✓' : '⬆',
+      uploadTexto: st.uploadFeito ? 'documento.pdf selecionado' : 'Arraste um arquivo ou clique para escolher',
+      simularUpload: () => this.setState({ uploadFeito: true }),
+      abrirNovoEvento: () => this.setState({ modal: 'evento', editandoIdx: -1, formTitulo: '', formData: '', formHora: '' }),
+      abrirUpload: () => this.setState({ modal: 'upload', uploadFeito: false, formArquivoNome: '' }),
+      fecharModal: () => this.setState({ modal: null, editandoIdx: -1 }),
+      pararClique: (e) => e.stopPropagation(),
+      addFoto: () => {
+        if (st.editandoIdx < 0) { this.avisar('Salve o evento primeiro para adicionar fotos'); return; }
+        const keys = ['padaria', 'mesa', 'marmita', 'doces', 'juntos'];
+        const eventos = st.eventos.map((e, j) => j === st.editandoIdx ? { ...e, fotos: [...e.fotos, keys[e.fotos.length % keys.length]] } : e);
+        this.setState({ eventos }); this.avisar('Foto adicionada');
+      },
+      salvarEvento: () => {
+        if (!st.formTitulo.trim()) { this.avisar('Dê um título ao evento'); return; }
+        let eventos;
+        if (st.editandoIdx >= 0) {
+          eventos = st.eventos.map((e, j) => j === st.editandoIdx ? { ...e, titulo: st.formTitulo, data: st.formData, hora: st.formHora } : e);
+        } else {
+          eventos = [{ titulo: st.formTitulo, data: st.formData || '—', hora: st.formHora || '—', imgKey: 'juntos', fotos: [], futuro: true }, ...st.eventos];
+        }
+        this.setState({ eventos, modal: null, editandoIdx: -1 }); this.avisar('Evento salvo');
+      },
+      salvarArquivo: () => {
+        if (!st.uploadFeito) { this.avisar('Escolha um arquivo primeiro'); return; }
+        const catLabels = { compra: 'Editais de compra', servicos: 'Prestação de serviços', seletivo: 'Processo seletivo', transparencia: 'Transparência' };
+        const novo = { nome: st.formArquivoNome.trim() || 'documento.pdf', categoria: catLabels[st.catUpload], cat: st.catUpload, data: '13/07/2026', tamanho: '1,0 MB', tipo: 'PDF' };
+        this.setState({ arquivos: [novo, ...st.arquivos], modal: null }); this.avisar('Arquivo publicado no site');
+      },
+      goEventosNovo: () => this.setState({ secao: 'eventos', modal: 'evento', editandoIdx: -1, formTitulo: '', formData: '', formHora: '' }),
+      goArquivosNovo: () => this.setState({ secao: 'arquivos', modal: 'upload', uploadFeito: false, formArquivoNome: '' }),
+      goCursosAdmin: () => this.setState({ secao: 'cursos' }),
+      toast: st.toast, temToast: !!st.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
