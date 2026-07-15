@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 
 const NAV = [
   { to: "/", label: "Início", end: true },
@@ -24,7 +24,6 @@ function navClass({ isActive }: { isActive: boolean }) {
 
 export default function PublicLayout() {
   const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -176,13 +175,15 @@ export default function PublicLayout() {
               >
                 ig
               </a>
-              <button
-                type="button"
-                onClick={() => navigate("/contato")}
-                className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-verde text-sm font-extrabold text-white"
+              <a
+                href="https://wa.me/554333256488?text=Ol%C3%A1!%20Vim%20pelo%20site%20do%20Clube%20das%20M%C3%A3es%20Unidas."
+                target="_blank"
+                rel="noreferrer"
+                aria-label="WhatsApp"
+                className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-verde text-sm font-extrabold text-white hover:text-white"
               >
                 wa
-              </button>
+              </a>
             </div>
           </div>
         </div>
