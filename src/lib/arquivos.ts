@@ -19,6 +19,8 @@ export interface ArquivoRow {
   encerrado?: boolean | null;
   /** Agrupamento na página Transparência. undefined => "institucionais". */
   subcategoria?: SubcatTransparencia | null;
+  /** Controla se aparece no site público. */
+  visivel_site?: boolean | null;
 }
 
 export type SubcatTransparencia =
@@ -41,6 +43,10 @@ export const CATEGORIA_LABEL: Record<CategoriaArquivo, string> = {
   transparencia: "Transparência",
   outros: "Outros",
 };
+
+export function isArquivoVisivel(a: ArquivoRow): boolean {
+  return a.visivel_site !== false;
+}
 
 export function fmtTamanho(bytes: number | null): string {
   if (!bytes) return "";
@@ -67,6 +73,7 @@ export function urlArquivo(a: ArquivoRow): string {
   return publicUrl(BUCKET_ARQUIVOS, a.storage_path);
 }
 
+/** Arquivos visíveis no site público. */
 export async function fetchArquivos(): Promise<ArquivoRow[]> {
   const { data, error } = await supabase
     .from("site_arquivos")
@@ -77,7 +84,48 @@ export async function fetchArquivos(): Promise<ArquivoRow[]> {
     console.error("Erro ao buscar arquivos:", error.message);
     return [];
   }
+  return ((data ?? []) as ArquivoRow[]).filter(isArquivoVisivel);
+}
+
+/** Todos os arquivos (painel admin). */
+export async function fetchArquivosAdmin(): Promise<ArquivoRow[]> {
+  const { data, error } = await supabase
+    .from("site_arquivos")
+    .select("*")
+    .order("publicado_em", { ascending: false });
+
+  if (error) {
+    console.error("Erro ao buscar arquivos (admin):", error.message);
+    return [];
+  }
   return (data ?? []) as ArquivoRow[];
+}
+
+export async function setArquivoVisivel(
+  id: string,
+  visivel: boolean
+): Promise<void> {
+  const { error } = await supabase
+    .from("site_arquivos")
+    .update({ visivel_site: visivel })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function setArquivoEncerrado(
+  id: string,
+  encerrado: boolean
+): Promise<void> {
+  const { error } = await supabase
+    .from("site_arquivos")
+    .update({ encerrado })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Categorias de edital que exibem badge Aberto/Encerrado. */
+export function ehCategoriaEdital(cat: CategoriaArquivo): boolean {
+  return cat === "compra" || cat === "servicos" || cat === "seletivo";
 }
 
 export interface ArquivoUpload {
@@ -107,6 +155,7 @@ export async function publicarArquivo(input: ArquivoUpload): Promise<void> {
     storage_path: path,
     mime: input.file.type || `application/${ext}`,
     tamanho_bytes: input.file.size,
+    visivel_site: true,
   });
   if (error) throw error;
 }

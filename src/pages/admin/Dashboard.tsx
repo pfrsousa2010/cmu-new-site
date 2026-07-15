@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchCursos, isVisivel, type CursoRow } from "@/lib/cursos";
 import { fetchEventosAdmin, ehFuturo, type EventoRow } from "@/lib/eventos";
-import { fetchArquivos, type ArquivoRow } from "@/lib/arquivos";
+import { fetchArquivosAdmin, type ArquivoRow } from "@/lib/arquivos";
 
 function tempoRelativo(iso: string): string {
   const now = Date.now();
@@ -81,7 +81,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     let ativo = true;
-    Promise.all([fetchCursos(), fetchEventosAdmin(), fetchArquivos()])
+    Promise.all([fetchCursos(), fetchEventosAdmin(), fetchArquivosAdmin()])
       .then(([c, e, a]) => {
         if (!ativo) return;
         setCursos(c);

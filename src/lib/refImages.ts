@@ -18,10 +18,4 @@ export const IMG_DOCES = wix("04c518_79c28ee490c04ef5937e73dee26ac7aa~mv2.png", 
 export const IMG_JUNTOS = wix("11062b_1bae4c1b9e17401eb83214230196c28c~mv2.jpg", 600, 400);
 
 /** Fallback quando um curso não tem imagem própria (imagem_url). */
-export const CURSO_FALLBACKS = [
-  IMG_PADARIA,
-  IMG_MESA,
-  IMG_MARMITA,
-  IMG_DOCES,
-  IMG_JUNTOS,
-];
+export const CURSO_FALLBACK = "/logo-cmu.png";

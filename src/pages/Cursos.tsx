@@ -14,7 +14,7 @@ import {
   type CursoRow,
   type StatusCurso,
 } from "@/lib/cursos";
-import { CURSO_FALLBACKS } from "@/lib/refImages";
+import { CURSO_FALLBACK } from "@/lib/refImages";
 import LoadingLogo from "@/components/LoadingLogo";
 import InscricaoModal from "@/components/InscricaoModal";
 
@@ -108,11 +108,10 @@ export default function Cursos() {
         </p>
       ) : (
         <div className="mt-7 grid grid-cols-1 gap-[22px] sm:grid-cols-2 lg:grid-cols-3">
-          {filtrados.map((c, i) => (
+          {filtrados.map((c) => (
             <CursoCard
               key={c.id}
               curso={c}
-              idx={i}
               onInscrever={() => setCursoInscricaoId(c.id)}
             />
           ))}
@@ -129,19 +128,17 @@ export default function Cursos() {
 
 function CursoCard({
   curso,
-  idx,
   onInscrever,
 }: {
   curso: CursoRow;
-  idx: number;
   onInscrever: () => void;
 }) {
   const st = statusDe(curso);
   const meta = STATUS_META[st];
   const restantes = vagasRestantes(curso);
   const total = curso.vagas ?? 0;
-  const img =
-    curso.imagem_url || CURSO_FALLBACKS[idx % CURSO_FALLBACKS.length];
+  const temImagem = Boolean(curso.imagem_url);
+  const img = curso.imagem_url || CURSO_FALLBACK;
   const dias = curso.dia_semana
     .map((d) => DIAS_LABEL[d] ?? d)
     .join(" · ");
@@ -151,11 +148,23 @@ function CursoCard({
   return (
     <div className="flex flex-col overflow-hidden rounded-card border border-black/[.07] bg-white transition-shadow hover:shadow-card-hover-lg">
       <div className="relative">
-        <img
-          src={img}
-          alt={curso.titulo}
-          className="block h-[160px] w-full object-cover"
-        />
+        <div
+          className={
+            temImagem
+              ? "h-[160px] w-full"
+              : "flex h-[160px] w-full items-center justify-center bg-dark"
+          }
+        >
+          <img
+            src={img}
+            alt={curso.titulo}
+            className={
+              temImagem
+                ? "block h-full w-full object-cover"
+                : "block h-[88px] w-[88px] object-contain"
+            }
+          />
+        </div>
         <span
           className={`absolute left-3 top-3 rounded-full px-3 py-[5px] text-xs font-bold text-white ${meta.className}`}
         >
