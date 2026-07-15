@@ -23,7 +23,11 @@ export interface CursoRow {
   visivel_site?: boolean | null;
 }
 
-export type StatusCurso = "inscricoes" | "andamento" | "planejado";
+export type StatusCurso =
+  | "inscricoes"
+  | "andamento"
+  | "planejado"
+  | "finalizado";
 
 export const DIAS_LABEL: Record<DiaSemana, string> = {
   seg: "Seg",
@@ -48,13 +52,32 @@ export const STATUS_META: Record<
   inscricoes: { label: "Inscrições abertas", color: "#62b32e", className: "bg-verde" },
   andamento: { label: "Em andamento", color: "#2e6fb7", className: "bg-azul" },
   planejado: { label: "Em breve", color: "#ee7623", className: "bg-laranja" },
+  finalizado: { label: "Finalizado", color: "#6b7280", className: "bg-ink-mid" },
 };
 
-/** Regra de status: planejado > inscrições abertas > em andamento. */
+/** Data local no formato YYYY-MM-DD. */
+export function hojeISO(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Regra de status:
+ * - finalizado: data fim anterior a hoje
+ * - planejado / inscricoes / andamento: demais (andamento exige fim >= hoje)
+ */
 export function statusDe(c: CursoRow): StatusCurso {
+  if (c.fim && c.fim < hojeISO()) return "finalizado";
   if (c.is_planejado) return "planejado";
   if (c.inscricoes_ativa) return "inscricoes";
   return "andamento";
+}
+
+export function isAtivoNoSite(c: CursoRow): boolean {
+  return statusDe(c) !== "finalizado";
 }
 
 export function vagasRestantes(c: CursoRow): number {
@@ -77,14 +100,20 @@ export function fmtDiaMes(iso: string): string {
 }
 
 /**
- * Busca os cursos ativos (não cancelados). O filtro de visibilidade é aplicado
- * em memória para funcionar mesmo antes da coluna `visivel_site` existir.
+ * Busca os cursos ativos (não cancelados) do ano corrente.
+ * O filtro de visibilidade é aplicado em memória para funcionar mesmo
+ * antes da coluna `visivel_site` existir.
  */
 export async function fetchCursos(): Promise<CursoRow[]> {
+  const ano = new Date().getFullYear();
+  const hoje = hojeISO();
   const { data, error } = await supabase
     .from("cursos")
     .select("*")
     .eq("is_cancelado", false)
+    .gte("inicio", `${ano}-01-01`)
+    .lte("inicio", `${ano}-12-31`)
+    .gte("fim", hoje)
     .order("inicio", { ascending: true });
 
   if (error) {

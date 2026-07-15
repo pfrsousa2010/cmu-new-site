@@ -3,6 +3,7 @@ import {
   fetchCursos,
   statusDe,
   isVisivel,
+  isAtivoNoSite,
   vagasRestantes,
   fmtDataCurta,
   DIAS_LABEL,
@@ -13,7 +14,7 @@ import {
 } from "@/lib/cursos";
 import { CURSO_FALLBACKS } from "@/lib/refImages";
 
-type Filtro = "todos" | StatusCurso;
+type Filtro = "todos" | Exclude<StatusCurso, "finalizado">;
 
 const FILTROS: { key: Filtro; label: string }[] = [
   { key: "todos", label: "Todos" },
@@ -29,7 +30,7 @@ export default function Cursos() {
 
   useEffect(() => {
     fetchCursos().then((data) => {
-      setCursos(data.filter(isVisivel));
+      setCursos(data.filter(isVisivel).filter(isAtivoNoSite));
       setLoading(false);
     });
   }, []);
@@ -94,8 +95,7 @@ function CursoCard({ curso, idx }: { curso: CursoRow; idx: number }) {
   const meta = STATUS_META[st];
   const restantes = vagasRestantes(curso);
   const total = curso.vagas ?? 0;
-  const iniciaram = curso.qtd_alunos_iniciaram ?? 0;
-  const pct = total > 0 ? Math.round((iniciaram / total) * 100) : 0;
+  const pct = total > 0 ? Math.round((restantes / total) * 100) : 0;
   const img =
     curso.imagem_url || CURSO_FALLBACKS[idx % CURSO_FALLBACKS.length];
   const dias = curso.dia_semana.map((d) => DIAS_LABEL[d] ?? d).join(" · ");
@@ -128,22 +128,28 @@ function CursoCard({ curso, idx }: { curso: CursoRow; idx: number }) {
           De {fmtDataCurta(curso.inicio)} a {fmtDataCurta(curso.fim)}
         </div>
         <div className="mt-auto">
-          <div className="mb-1.5 flex justify-between text-[12.5px] font-bold text-ink-mid">
-            <span>Vagas</span>
-            <span>
-              {restantes} de {total} disponíveis
-            </span>
-          </div>
-          <div className="h-[7px] overflow-hidden rounded-full bg-subtle">
-            <div
-              className={`h-full rounded-full ${meta.className}`}
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          {st === "inscricoes" && (
-            <button className="mt-3.5 w-full rounded-xl bg-verde px-3 py-[11px] text-center font-display text-[14.5px] font-extrabold text-white transition-colors hover:bg-verde-hover">
-              Inscreva-se
-            </button>
+          {st === "inscricoes" ? (
+            <>
+              <div className="mb-1.5 flex justify-between text-[12.5px] font-bold text-ink-mid">
+                <span>Vagas</span>
+                <span>
+                  {restantes} de {total} disponíveis
+                </span>
+              </div>
+              <div className="h-[7px] overflow-hidden rounded-full bg-subtle">
+                <div
+                  className={`h-full rounded-full ${meta.className}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <button className="mt-3.5 w-full rounded-xl bg-verde px-3 py-[11px] text-center font-display text-[14.5px] font-extrabold text-white transition-colors hover:bg-verde-hover">
+                Inscreva-se
+              </button>
+            </>
+          ) : (
+            <div className="text-[12.5px] font-bold text-ink-mid">
+              {total} {total === 1 ? "vaga" : "vagas"}
+            </div>
           )}
         </div>
       </div>
