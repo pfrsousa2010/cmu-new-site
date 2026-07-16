@@ -3,14 +3,22 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Login() {
-  const { session, signIn } = useAuth();
+  const { session, isAdmin, loading, signIn } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
 
-  if (session) return <Navigate to="/admin" replace />;
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-admin-bg text-ink-2">
+        Carregando…
+      </div>
+    );
+  }
+
+  if (session && isAdmin) return <Navigate to="/admin" replace />;
 
   const entrar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +27,12 @@ export default function Login() {
     const { error } = await signIn(email.trim(), senha);
     setCarregando(false);
     if (error) {
-      setErro("E-mail ou senha inválidos.");
+      const msg = error.toLowerCase();
+      if (msg.includes("restrito") || msg.includes("permissão")) {
+        setErro(error);
+      } else {
+        setErro("E-mail ou senha inválidos.");
+      }
       return;
     }
     navigate("/admin", { replace: true });
@@ -41,6 +54,9 @@ export default function Login() {
             Clube das Mães Unidas
             <span className="text-laranja"> · Admin</span>
           </div>
+          <p className="m-0 max-w-[280px] text-[14px] leading-snug text-ink-2">
+            Área restrita da administração do site
+          </p>
         </div>
 
         <form

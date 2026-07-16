@@ -306,8 +306,8 @@ export default function AdminEventos() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
+      <div className="mb-6 flex items-start justify-between gap-3 sm:items-center sm:gap-4">
+        <div className="min-w-0 flex-1">
           <h1 className="mb-1 font-display text-[28px] font-black">Eventos</h1>
           <p className="m-0 text-[14.5px] text-ink-2">
             Adicione, edite ou remova eventos da agenda. As fotos de cada evento
@@ -316,9 +316,13 @@ export default function AdminEventos() {
         </div>
         <button
           onClick={abrirNovo}
-          className="rounded-full bg-azul px-[22px] py-3 font-display text-[14.5px] font-extrabold text-white shadow-[0_3px_10px_rgba(46,111,183,.3)] transition-colors hover:bg-azul-hover"
+          aria-label="Novo evento"
+          className="inline-flex flex-none items-center justify-center gap-2 rounded-full bg-azul px-3.5 py-3 font-display text-[14.5px] font-extrabold text-white shadow-[0_3px_10px_rgba(46,111,183,.3)] transition-colors hover:bg-azul-hover sm:px-[22px]"
         >
-          + Novo evento
+          <span aria-hidden="true" className="text-xl leading-none">
+            +
+          </span>
+          <span className="hidden sm:inline">Novo evento</span>
         </button>
       </div>
 
@@ -359,61 +363,78 @@ export default function AdminEventos() {
             return (
               <div
                 key={e.id}
-                className="flex flex-wrap items-center gap-4 rounded-2xl bg-white px-5 py-4"
+                className="rounded-2xl border border-black/[.06] bg-white p-4 shadow-sm sm:flex sm:items-center sm:gap-4 sm:px-5 sm:py-4"
               >
-                {capa ? (
-                  <img
-                    src={capa}
-                    alt=""
-                    className="h-16 w-24 flex-none rounded-[10px] object-cover"
-                  />
-                ) : (
-                  <div className="flex h-16 w-24 flex-none items-center justify-center rounded-[10px] bg-subtle text-[11px] text-ink-3">
-                    sem foto
+                <div className="flex min-w-0 flex-1 gap-3.5 sm:items-center sm:gap-4">
+                  {capa ? (
+                    <img
+                      src={capa}
+                      alt=""
+                      className="h-[72px] w-[96px] flex-none rounded-[10px] object-cover sm:h-16 sm:w-24"
+                    />
+                  ) : (
+                    <div className="flex h-[72px] w-[96px] flex-none items-center justify-center rounded-[10px] bg-subtle text-[11px] text-ink-3 sm:h-16 sm:w-24">
+                      sem foto
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-display text-[15.5px] font-extrabold leading-snug sm:text-base">
+                      {e.titulo}
+                    </div>
+                    <div className="mt-1 text-[13px] leading-snug text-ink-2 sm:mt-0.5 sm:text-[13.5px]">
+                      {fmtDataBR(e.data)} · {e.hora ?? "—"} ·{" "}
+                      {e.evento_fotos?.length ?? 0} foto(s)
+                    </div>
+                    <span
+                      className={[
+                        "mt-2 inline-flex rounded-full px-3 py-[5px] text-xs font-bold sm:hidden",
+                        futuro
+                          ? "bg-laranja/[.12] text-laranja"
+                          : "bg-black/[.07] text-ink-2",
+                      ].join(" ")}
+                    >
+                      {futuro ? "Em breve" : "Finalizado"}
+                    </span>
                   </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="font-display text-base font-extrabold">
-                    {e.titulo}
-                  </div>
-                  <div className="mt-0.5 text-[13.5px] text-ink-2">
-                    {fmtDataBR(e.data)} · {e.hora ?? "—"} ·{" "}
-                    {e.evento_fotos?.length ?? 0} foto(s)
-                  </div>
-                </div>
-                <span
-                  className={[
-                    "flex-none rounded-full px-3 py-[5px] text-xs font-bold",
-                    futuro
-                      ? "bg-laranja/[.12] text-laranja"
-                      : "bg-black/[.07] text-ink-2",
-                  ].join(" ")}
-                >
-                  {futuro ? "Em breve" : "Finalizado"}
-                </span>
-                <div className="flex flex-none flex-col items-center gap-1">
-                  <span className="text-[11px] font-bold text-ink-2">
-                    Visível no site
+                  <span
+                    className={[
+                      "hidden flex-none rounded-full px-3 py-[5px] text-xs font-bold sm:inline-flex",
+                      futuro
+                        ? "bg-laranja/[.12] text-laranja"
+                        : "bg-black/[.07] text-ink-2",
+                    ].join(" ")}
+                  >
+                    {futuro ? "Em breve" : "Finalizado"}
                   </span>
-                  <Toggle
-                    on={e.publicado}
-                    color="bg-azul"
-                    disabled={busy}
-                    onClick={() => toggleVis(e)}
-                  />
                 </div>
-                <button
-                  onClick={() => abrirEditar(e)}
-                  className="flex-none rounded-[9px] px-3 py-2 text-[13.5px] font-bold text-azul hover:bg-azul/[.08]"
-                >
-                  Editar
-                </button>
-                <button
-                  onClick={() => remover(e)}
-                  className="flex-none rounded-[9px] px-3 py-2 text-[13.5px] font-bold text-vermelho hover:bg-vermelho/[.08]"
-                >
-                  Remover
-                </button>
+
+                <div className="mt-3.5 flex flex-col gap-3 border-t border-black/[.06] pt-3.5 sm:mt-0 sm:flex-none sm:flex-row sm:items-center sm:gap-3 sm:border-0 sm:pt-0">
+                  <div className="flex items-center justify-between gap-3 rounded-[10px] bg-subtle/80 px-3.5 py-2.5 sm:flex-col sm:justify-center sm:gap-1 sm:bg-transparent sm:px-0 sm:py-0">
+                    <span className="text-[12.5px] font-bold text-ink-2 sm:text-[11px]">
+                      Visível no site
+                    </span>
+                    <Toggle
+                      on={e.publicado}
+                      color="bg-azul"
+                      disabled={busy}
+                      onClick={() => toggleVis(e)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-1">
+                    <button
+                      onClick={() => abrirEditar(e)}
+                      className="rounded-[9px] border border-azul/20 bg-azul/[.06] px-3 py-2.5 text-[13.5px] font-bold text-azul transition-colors hover:bg-azul/[.12] sm:border-0 sm:bg-transparent sm:py-2 sm:hover:bg-azul/[.08]"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => remover(e)}
+                      className="rounded-[9px] border border-vermelho/20 bg-vermelho/[.06] px-3 py-2.5 text-[13.5px] font-bold text-vermelho transition-colors hover:bg-vermelho/[.12] sm:border-0 sm:bg-transparent sm:py-2 sm:hover:bg-vermelho/[.08]"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                </div>
               </div>
             );
           })}

@@ -227,16 +227,22 @@ export default function AdminCursos() {
 
   return (
     <div>
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="m-0 font-display text-[28px] font-black">Cursos</h1>
-        <div className="flex items-center gap-2 rounded-full bg-verde/10 px-4 py-2 text-[13px] font-bold text-verde-dark">
-          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-verde" />
-          Sincronizado com o SGE - CMU
+      <div className="mb-2 flex items-start justify-between gap-3 sm:items-center">
+        <h1 className="m-0 min-w-0 flex-1 font-display text-[28px] font-black">
+          Cursos
+        </h1>
+        <div className="flex flex-none items-center gap-2 rounded-full bg-verde/10 px-3 py-2 text-[12.5px] font-bold text-verde-dark sm:px-4 sm:text-[13px]">
+          <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-verde opacity-60" />
+            <span className="relative inline-block h-2.5 w-2.5 rounded-full bg-verde shadow-[0_0_0_3px_rgba(98,179,46,.25)]" />
+          </span>
+          <span className="sm:hidden">SGE</span>
+          <span className="hidden sm:inline">Sincronizado com o SGE - CMU</span>
         </div>
       </div>
       <p className="m-0 mb-5 max-w-[640px] text-[14.5px] leading-[1.55] text-ink-2">
         Os cursos são gerenciados no Sistema de Gestão de Educacional (SGE - CMU) e aparecem automaticamente no
-        site (mesmas regras públicas: sem percursos e sem planejados). Aqui você
+        site (sem percursos e sem planejados). Aqui você
         controla <b>imagem do card</b>, <b>visibilidade</b> e{" "}
         <b>inscrições</b>. Sem imagem, o site usa a logo CMU.
       </p>
@@ -268,20 +274,9 @@ export default function AdminCursos() {
           Nenhum curso encontrado para “{busca.trim()}”.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-[18px] bg-white">
-          <div className="min-w-[1050px]">
-            <div
-              className={`grid ${cols} gap-3 bg-site-bg px-[22px] py-3.5 text-xs font-extrabold uppercase tracking-[.04em] text-ink-2`}
-            >
-              <div>Imagem</div>
-              <div>Curso</div>
-              <div>Professor</div>
-              <div>Parceiro</div>
-              <div>Período</div>
-              <div>Vagas</div>
-              <div>Inscrições</div>
-              <div>Visível no site</div>
-            </div>
+        <>
+          {/* Mobile cards */}
+          <div className="grid gap-3 lg:hidden">
             {filtrados.map((c) => {
               const insc = c.inscricoes_ativa;
               const vis = isVisivel(c);
@@ -289,101 +284,240 @@ export default function AdminCursos() {
               const podeInsc = podeAlternarInscricoes(c);
               const st = statusDe(c);
               const meta = STATUS_META[st];
-              const motivoInsc = !c.inscricoes_inicio || !c.inscricoes_fim
-                ? "Período de inscrição não configurado"
-                : "Período de inscrição encerrado";
+              const motivoInsc =
+                !c.inscricoes_inicio || !c.inscricoes_fim
+                  ? "Período de inscrição não configurado"
+                  : "Período de inscrição encerrado";
               const temImg = Boolean(c.imagem_url);
+              const professor = c.parceiro_id ? null : nomeCurto(c.professor);
+              const parceiro = c.parceiro_id
+                ? (c.parceiros?.nome ?? "Parceiro")
+                : null;
+
               return (
                 <div
                   key={c.id}
-                  className={`grid ${cols} items-center gap-3 border-t border-black/[.05] px-[22px] py-4`}
+                  className="rounded-2xl border border-black/[.06] bg-white p-4 shadow-sm"
                 >
-                  <div className="flex flex-col items-start gap-1.5">
-                    <div
-                      className={[
-                        "flex h-11 w-[72px] items-center justify-center overflow-hidden rounded-lg",
-                        temImg ? "bg-site-bg" : "bg-dark",
-                      ].join(" ")}
-                    >
-                      <img
-                        src={temImg ? c.imagem_url! : CURSO_FALLBACK}
-                        alt=""
-                        className={
-                          temImg
-                            ? "h-full w-full object-cover"
-                            : "h-7 w-7 object-contain"
-                        }
-                      />
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => abrirModalImagem(c)}
-                        className="rounded px-1.5 py-0.5 text-[11px] font-bold text-azul hover:bg-azul/[.08] disabled:opacity-50"
+                  <div className="flex gap-3.5">
+                    <div className="flex flex-none flex-col items-start gap-1.5">
+                      <div
+                        className={[
+                          "flex h-[72px] w-[96px] items-center justify-center overflow-hidden rounded-[10px]",
+                          temImg ? "bg-site-bg" : "bg-dark",
+                        ].join(" ")}
                       >
-                        {temImg ? "Trocar" : "Definir"}
-                      </button>
-                      {temImg && (
+                        <img
+                          src={temImg ? c.imagem_url! : CURSO_FALLBACK}
+                          alt=""
+                          className={
+                            temImg
+                              ? "h-full w-full object-cover"
+                              : "h-8 w-8 object-contain"
+                          }
+                        />
+                      </div>
+                      <div className="flex w-full gap-1">
                         <button
                           type="button"
                           disabled={busy}
-                          onClick={() => removerImagem(c)}
-                          className="rounded px-1.5 py-0.5 text-[11px] font-bold text-vermelho hover:bg-vermelho/[.08] disabled:opacity-50"
+                          onClick={() => abrirModalImagem(c)}
+                          className="flex-1 rounded-md border border-azul/20 bg-azul/[.06] px-1.5 py-1 text-center text-[11px] font-bold text-azul disabled:opacity-50"
                         >
-                          Remover
+                          {temImg ? "Trocar" : "Definir"}
                         </button>
-                      )}
+                        {temImg && (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => removerImagem(c)}
+                            className="flex-1 rounded-md border border-vermelho/20 bg-vermelho/[.06] px-1.5 py-1 text-center text-[11px] font-bold text-vermelho disabled:opacity-50"
+                          >
+                            Remover
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[15px] font-bold leading-snug">
+                        {c.titulo}
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full px-2.5 py-[3px] text-[11px] font-bold text-white ${meta.className}`}
+                        >
+                          {meta.label}
+                        </span>
+                        <span className="text-[12.5px] text-ink-3">
+                          {fmtDiaMes(c.inicio)} – {fmtDiaMes(c.fim)}
+                        </span>
+                      </div>
+                      <div className="mt-2 space-y-0.5 text-[13px] text-ink-2">
+                        {professor && <div>Prof.: {professor}</div>}
+                        {parceiro && <div>Parceiro: {parceiro}</div>}
+                        <div>
+                          {PERIODOS_LABEL[c.periodo]} · {c.vagas ?? 0} vagas
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <div className="text-[14.5px] font-bold">{c.titulo}</div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                      <span
-                        className={`rounded-full px-2.5 py-[3px] text-[11px] font-bold text-white ${meta.className}`}
-                      >
-                        {meta.label}
+
+                  <div className="mt-3.5 grid gap-2 border-t border-black/[.06] pt-3.5">
+                    <div
+                      className="flex items-center justify-between gap-3 rounded-[10px] bg-subtle/80 px-3.5 py-2.5"
+                      title={podeInsc ? undefined : motivoInsc}
+                    >
+                      <span className="min-w-0 text-[12.5px] font-bold leading-snug text-ink-2">
+                        Inscrições
+                        {!podeInsc && (
+                          <span className="font-semibold text-ink-3">
+                            {" "}
+                            ({motivoInsc})
+                          </span>
+                        )}
                       </span>
-                      <span className="text-[12.5px] text-ink-3">
-                        {fmtDiaMes(c.inicio)} – {fmtDiaMes(c.fim)}
-                      </span>
+                      <Toggle
+                        on={insc}
+                        color="bg-verde"
+                        disabled={busy || !podeInsc}
+                        onClick={() => toggleInsc(c)}
+                      />
                     </div>
-                  </div>
-                  <div className="text-sm text-ink-mid">
-                    {c.parceiro_id ? "—" : nomeCurto(c.professor)}
-                  </div>
-                  <div className="text-sm text-ink-mid">
-                    {c.parceiro_id
-                      ? c.parceiros?.nome ?? "Parceiro"
-                      : "—"}
-                  </div>
-                  <div className="text-sm text-ink-mid">
-                    {PERIODOS_LABEL[c.periodo]}
-                  </div>
-                  <div className="text-sm text-ink-mid">
-                    {c.vagas ?? 0}
-                  </div>
-                  <div title={podeInsc ? undefined : motivoInsc}>
-                    <Toggle
-                      on={insc}
-                      color="bg-verde"
-                      disabled={busy || !podeInsc}
-                      onClick={() => toggleInsc(c)}
-                    />
-                  </div>
-                  <div>
-                    <Toggle
-                      on={vis}
-                      color="bg-azul"
-                      disabled={busy}
-                      onClick={() => toggleVis(c)}
-                    />
+                    <div className="flex items-center justify-between gap-3 rounded-[10px] bg-subtle/80 px-3.5 py-2.5">
+                      <span className="text-[12.5px] font-bold text-ink-2">
+                        Visível no site
+                      </span>
+                      <Toggle
+                        on={vis}
+                        color="bg-azul"
+                        disabled={busy}
+                        onClick={() => toggleVis(c)}
+                      />
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
+
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto rounded-[18px] bg-white lg:block">
+            <div className="min-w-[1050px]">
+              <div
+                className={`grid ${cols} gap-3 bg-site-bg px-[22px] py-3.5 text-xs font-extrabold uppercase tracking-[.04em] text-ink-2`}
+              >
+                <div>Imagem</div>
+                <div>Curso</div>
+                <div>Professor</div>
+                <div>Parceiro</div>
+                <div>Período</div>
+                <div>Vagas</div>
+                <div>Inscrições</div>
+                <div>Visível no site</div>
+              </div>
+              {filtrados.map((c) => {
+                const insc = c.inscricoes_ativa;
+                const vis = isVisivel(c);
+                const busy = pending[c.id];
+                const podeInsc = podeAlternarInscricoes(c);
+                const st = statusDe(c);
+                const meta = STATUS_META[st];
+                const motivoInsc =
+                  !c.inscricoes_inicio || !c.inscricoes_fim
+                    ? "Período de inscrição não configurado"
+                    : "Período de inscrição encerrado";
+                const temImg = Boolean(c.imagem_url);
+                return (
+                  <div
+                    key={c.id}
+                    className={`grid ${cols} items-center gap-3 border-t border-black/[.05] px-[22px] py-4`}
+                  >
+                    <div className="flex flex-col items-start gap-1.5">
+                      <div
+                        className={[
+                          "flex h-11 w-[72px] items-center justify-center overflow-hidden rounded-lg",
+                          temImg ? "bg-site-bg" : "bg-dark",
+                        ].join(" ")}
+                      >
+                        <img
+                          src={temImg ? c.imagem_url! : CURSO_FALLBACK}
+                          alt=""
+                          className={
+                            temImg
+                              ? "h-full w-full object-cover"
+                              : "h-7 w-7 object-contain"
+                          }
+                        />
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => abrirModalImagem(c)}
+                          className="rounded px-1.5 py-0.5 text-[11px] font-bold text-azul hover:bg-azul/[.08] disabled:opacity-50"
+                        >
+                          {temImg ? "Trocar" : "Definir"}
+                        </button>
+                        {temImg && (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => removerImagem(c)}
+                            className="rounded px-1.5 py-0.5 text-[11px] font-bold text-vermelho hover:bg-vermelho/[.08] disabled:opacity-50"
+                          >
+                            Remover
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[14.5px] font-bold">{c.titulo}</div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full px-2.5 py-[3px] text-[11px] font-bold text-white ${meta.className}`}
+                        >
+                          {meta.label}
+                        </span>
+                        <span className="text-[12.5px] text-ink-3">
+                          {fmtDiaMes(c.inicio)} – {fmtDiaMes(c.fim)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-sm text-ink-mid">
+                      {c.parceiro_id ? "—" : nomeCurto(c.professor)}
+                    </div>
+                    <div className="text-sm text-ink-mid">
+                      {c.parceiro_id
+                        ? (c.parceiros?.nome ?? "Parceiro")
+                        : "—"}
+                    </div>
+                    <div className="text-sm text-ink-mid">
+                      {PERIODOS_LABEL[c.periodo]}
+                    </div>
+                    <div className="text-sm text-ink-mid">{c.vagas ?? 0}</div>
+                    <div title={podeInsc ? undefined : motivoInsc}>
+                      <Toggle
+                        on={insc}
+                        color="bg-verde"
+                        disabled={busy || !podeInsc}
+                        onClick={() => toggleInsc(c)}
+                      />
+                    </div>
+                    <div>
+                      <Toggle
+                        on={vis}
+                        color="bg-azul"
+                        disabled={busy}
+                        onClick={() => toggleVis(c)}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
       )}
 
       <Modal

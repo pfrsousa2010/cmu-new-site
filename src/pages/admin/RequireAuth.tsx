@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { ReactNode } from "react";
 
 export default function RequireAuth({ children }: { children: ReactNode }) {
-  const { session, loading } = useAuth();
+  const { session, isAdmin, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -14,7 +14,7 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!session) {
+  if (!session || !isAdmin) {
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 

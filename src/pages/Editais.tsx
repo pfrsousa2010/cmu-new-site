@@ -73,36 +73,42 @@ export default function Editais() {
             return (
               <div
                 key={ed.id}
-                className="flex items-center gap-[18px] rounded-2xl border border-black/[.07] bg-white px-[22px] py-[18px] transition-shadow hover:shadow-card-hover"
+                className="flex flex-col gap-3 rounded-2xl border border-black/[.07] bg-white px-4 py-4 transition-shadow hover:shadow-card-hover sm:flex-row sm:items-center sm:gap-[18px] sm:px-[22px] sm:py-[18px]"
               >
-                <div className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-vermelho/10 text-[11px] font-extrabold text-vermelho">
-                  PDF
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[15.5px] font-bold">{ed.nome}</div>
-                  <div className="mt-0.5 text-[13px] text-ink-2">
-                    Publicado em {fmtDataPublicacao(ed.publicado_em)} ·{" "}
-                    {fmtTamanho(ed.tamanho_bytes)}
+                <div className="flex min-w-0 flex-1 items-start gap-3.5 sm:items-center sm:gap-[18px]">
+                  <div className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-vermelho/10 text-[11px] font-extrabold text-vermelho">
+                    PDF
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[15.5px] font-bold leading-snug">
+                      {ed.nome}
+                    </div>
+                    <div className="mt-0.5 text-[13px] text-ink-2">
+                      Publicado em {fmtDataPublicacao(ed.publicado_em)} ·{" "}
+                      {fmtTamanho(ed.tamanho_bytes)}
+                    </div>
                   </div>
                 </div>
-                <span
-                  className={[
-                    "flex-none rounded-full px-3 py-[5px] text-xs font-bold",
-                    encerrado
-                      ? "bg-black/[.07] text-ink-2"
-                      : "bg-verde/[.12] text-verde-dark",
-                  ].join(" ")}
-                >
-                  {encerrado ? "Encerrado" : "Aberto"}
-                </span>
-                <a
-                  href={urlArquivo(ed)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex-none text-sm font-bold text-azul hover:text-laranja"
-                >
-                  Baixar ↓
-                </a>
+                <div className="flex flex-none items-center justify-between gap-4 pl-[58px] sm:justify-end sm:gap-[18px] sm:pl-0">
+                  <span
+                    className={[
+                      "rounded-full px-3 py-[5px] text-xs font-bold",
+                      encerrado
+                        ? "bg-black/[.07] text-ink-2"
+                        : "bg-verde/[.12] text-verde-dark",
+                    ].join(" ")}
+                  >
+                    {encerrado ? "Encerrado" : "Aberto"}
+                  </span>
+                  <a
+                    href={urlArquivo(ed)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm font-bold text-azul hover:text-laranja"
+                  >
+                    Baixar ↓
+                  </a>
+                </div>
               </div>
             );
           })}
