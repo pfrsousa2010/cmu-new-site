@@ -73,6 +73,16 @@ export default function AdminLayout() {
               {m.label}
             </NavLink>
           ))}
+          <NavLink
+            to="/"
+            onClick={() => setOpen(false)}
+            className="mt-2 flex items-center gap-[11px] rounded-[11px] border border-white/10 px-3.5 py-[11px] text-sm font-semibold text-white/65 transition-colors hover:bg-white/[.08] hover:text-white"
+          >
+            <span className="text-base" aria-hidden="true">
+              ←
+            </span>
+            Voltar ao site
+          </NavLink>
         </nav>
         <div className="mt-auto flex items-center gap-2.5 border-t border-white/10 px-5 py-[18px]">
           <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-verde text-[13px] font-extrabold">
