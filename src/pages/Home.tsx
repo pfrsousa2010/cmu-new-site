@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Depoimentos from "@/components/Depoimentos";
+import LoadingLogo from "@/components/LoadingLogo";
 import {
-  IMG_PADARIA,
-  IMG_MESA,
-  IMG_MARMITA,
-} from "@/lib/refImages";
+  fetchCursos,
+  selecionarDestaquesHome,
+  statusDe,
+  STATUS_META,
+  type CursoRow,
+  type StatusCurso,
+} from "@/lib/cursos";
+import { CURSO_FALLBACK } from "@/lib/refImages";
 
 const HERO_FOTOS = [
   "/sobre-nos/04c518_0422ce93c8c44973a338f68ce10b227b~mv2.avif",
@@ -21,26 +26,14 @@ const HERO_FOTOS = [
   "/sobre-nos/e7e902_feb773fdef5747039c2ede0def345afd~mv2.avif",
 ];
 
-const DESTAQUES = [
-  {
-    titulo: "Padaria",
-    tag: "CURSO · INSCRIÇÕES ABERTAS",
-    tagColor: "text-verde",
-    img: IMG_PADARIA,
-  },
-  {
-    titulo: "Mesa posta",
-    tag: "CURSO · INSCRIÇÕES ABERTAS",
-    tagColor: "text-verde",
-    img: IMG_MESA,
-  },
-  {
-    titulo: "Marmitaria — Comida caseira",
-    tag: "CURSO · EM ANDAMENTO",
-    tagColor: "text-azul",
-    img: IMG_MARMITA,
-  },
-];
+const TAG_HOME: Record<
+  Exclude<StatusCurso, "finalizado">,
+  { tag: string; tagColor: string }
+> = {
+  inscricoes: { tag: "CURSO · INSCRIÇÕES ABERTAS", tagColor: "text-verde" },
+  andamento: { tag: "CURSO · EM ANDAMENTO", tagColor: "text-azul" },
+  planejado: { tag: "CURSO · EM BREVE", tagColor: "text-laranja" },
+};
 
 function HeroCarousel() {
   const [index, setIndex] = useState(0);
@@ -90,6 +83,21 @@ function HeroCarousel() {
 }
 
 export default function Home() {
+  const [destaques, setDestaques] = useState<CursoRow[]>([]);
+  const [loadingDestaques, setLoadingDestaques] = useState(true);
+
+  useEffect(() => {
+    let ativo = true;
+    fetchCursos().then((data) => {
+      if (!ativo) return;
+      setDestaques(selecionarDestaquesHome(data));
+      setLoadingDestaques(false);
+    });
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
   return (
     <>
       {/* Hero */}
@@ -185,42 +193,80 @@ export default function Home() {
       {/* Fique por dentro */}
       <section className="border-y border-black/[.06] bg-white">
         <div className="mx-auto max-w-container px-6 py-16">
-          <div className="mb-7 flex items-baseline justify-between">
+          <div className="mb-7 flex items-baseline justify-between gap-4">
             <h2 className="m-0 font-display text-[34px] font-black">
               Fique por dentro
             </h2>
             <Link
               to="/cursos"
-              className="text-[15px] font-bold text-azul hover:text-laranja"
+              className="flex-none text-[15px] font-bold text-azul hover:text-laranja"
             >
               Ver todos os cursos →
             </Link>
           </div>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {DESTAQUES.map((d) => (
+          {loadingDestaques ? (
+            <LoadingLogo label="Carregando cursos…" />
+          ) : destaques.length === 0 ? (
+            <p className="m-0 text-ink-2">
+              Nenhum curso em destaque no momento.{" "}
               <Link
-                key={d.titulo}
                 to="/cursos"
-                className="overflow-hidden rounded-[18px] border border-black/[.07] bg-white transition-shadow hover:shadow-card-hover-lg"
+                className="font-bold text-azul hover:text-laranja"
               >
-                <img
-                  src={d.img}
-                  alt={d.titulo}
-                  className="block h-[180px] w-full object-cover"
-                />
-                <div className="px-5 pb-5 pt-[18px]">
-                  <div
-                    className={`mb-1.5 text-xs font-bold ${d.tagColor}`}
-                  >
-                    {d.tag}
-                  </div>
-                  <div className="font-display text-lg font-extrabold text-ink">
-                    {d.titulo}
-                  </div>
-                </div>
+                Ver cursos
               </Link>
-            ))}
-          </div>
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              {destaques.map((c) => {
+                const st = statusDe(c);
+                const tag =
+                  st === "finalizado"
+                    ? {
+                        tag: `CURSO · ${STATUS_META.finalizado.label.toUpperCase()}`,
+                        tagColor: "text-ink-2",
+                      }
+                    : TAG_HOME[st];
+                const temImagem = Boolean(c.imagem_url);
+                const img = c.imagem_url || CURSO_FALLBACK;
+                return (
+                  <Link
+                    key={c.id}
+                    to={`/cursos?busca=${encodeURIComponent(c.titulo)}`}
+                    className="overflow-hidden rounded-[18px] border border-black/[.07] bg-white transition-shadow hover:shadow-card-hover-lg"
+                  >
+                    <div
+                      className={
+                        temImagem
+                          ? "h-[180px] w-full"
+                          : "flex h-[180px] w-full items-center justify-center bg-dark"
+                      }
+                    >
+                      <img
+                        src={img}
+                        alt={c.titulo}
+                        className={
+                          temImagem
+                            ? "block h-full w-full object-cover"
+                            : "block h-[88px] w-[88px] object-contain"
+                        }
+                      />
+                    </div>
+                    <div className="px-5 pb-5 pt-[18px]">
+                      <div
+                        className={`mb-1.5 text-xs font-bold ${tag.tagColor}`}
+                      >
+                        {tag.tag}
+                      </div>
+                      <div className="font-display text-lg font-extrabold text-ink">
+                        {c.titulo}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

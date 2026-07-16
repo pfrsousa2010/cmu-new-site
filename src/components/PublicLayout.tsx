@@ -58,7 +58,7 @@ export default function PublicLayout() {
           <div className="flex flex-1 items-center justify-end gap-2 lg:flex-none lg:flex-initial">
             <Link
               to="/doar"
-              className="flex-none rounded-full bg-laranja px-[22px] py-2.5 font-display text-sm font-extrabold text-white shadow-[0_3px_10px_rgba(238,118,35,.35)] transition-colors hover:bg-laranja-hover hover:text-white"
+              className="flex-none animate-cta-pulse rounded-full bg-laranja px-[22px] py-2.5 font-display text-sm font-extrabold text-white shadow-[0_3px_10px_rgba(238,118,35,.35)] transition-colors hover:bg-laranja-hover hover:text-white"
             >
               Doe aqui ♥
             </Link>

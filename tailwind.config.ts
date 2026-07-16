@@ -60,9 +60,20 @@ export default {
           "0%, 100%": { transform: "scale(0.92)", opacity: "0.75" },
           "50%": { transform: "scale(1.08)", opacity: "1" },
         },
+        "cta-pulse": {
+          "0%, 100%": {
+            transform: "scale(1)",
+            boxShadow: "0 3px 10px rgba(238,118,35,.35)",
+          },
+          "50%": {
+            transform: "scale(1.06)",
+            boxShadow: "0 6px 22px rgba(238,118,35,.55)",
+          },
+        },
       },
       animation: {
         "logo-pulse": "logo-pulse 1.4s ease-in-out infinite",
+        "cta-pulse": "cta-pulse 1.8s ease-in-out infinite",
       },
     },
   },

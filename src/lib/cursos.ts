@@ -326,6 +326,81 @@ export function isVisivel(c: CursoRow): boolean {
   return c.visivel_site !== false;
 }
 
+/** Diferença em dias entre duas datas YYYY-MM-DD (a - b). */
+function diffDiasISO(a: string, b: string): number {
+  const da = new Date(`${a}T12:00:00`);
+  const db = new Date(`${b}T12:00:00`);
+  if (Number.isNaN(da.getTime()) || Number.isNaN(db.getTime())) return Number.MAX_SAFE_INTEGER;
+  return Math.round((da.getTime() - db.getTime()) / 86_400_000);
+}
+
+/**
+ * Ordena pelos cursos mais próximos de iniciar:
+ * 1) futuros (inicio >= hoje), do mais próximo ao mais distante;
+ * 2) já iniciados, do que começou mais recentemente ao mais antigo.
+ */
+export function compararProximidadeInicio(a: CursoRow, b: CursoRow): number {
+  const hoje = hojeISO();
+  const score = (c: CursoRow) => {
+    if (!c.inicio) return Number.MAX_SAFE_INTEGER;
+    const d = diffDiasISO(c.inicio, hoje);
+    return d >= 0 ? d : 100_000 - d; // passados depois dos futuros; mais recentes primeiro
+  };
+  return score(a) - score(b);
+}
+
+/**
+ * Destaques da Home: até 3 cursos visíveis/ativos, preferindo um de cada
+ * status (inscrições abertas, em andamento, em breve). Sem inscrição aberta,
+ * o slot é preenchido por outro em andamento. Vagas restantes são preenchidas
+ * pelos cursos mais próximos de iniciar.
+ */
+export function selecionarDestaquesHome(cursos: CursoRow[]): CursoRow[] {
+  const ativos = cursos.filter(isVisivel).filter(isAtivoNoSite);
+  if (ativos.length === 0) return [];
+
+  const porStatus = (st: StatusCurso) =>
+    ativos.filter((c) => statusDe(c) === st).sort(compararProximidadeInicio);
+
+  const inscricoes = porStatus("inscricoes");
+  const andamento = porStatus("andamento");
+  const planejado = porStatus("planejado");
+
+  const picked: CursoRow[] = [];
+  const used = new Set<string>();
+
+  const take = (lista: CursoRow[]) => {
+    const c = lista.find((x) => !used.has(x.id));
+    if (!c) return false;
+    used.add(c.id);
+    picked.push(c);
+    return true;
+  };
+
+  // 1) Inscrições abertas → fallback: em andamento
+  if (!take(inscricoes)) take(andamento);
+
+  // 2) Em andamento
+  take(andamento);
+
+  // 3) Em breve
+  take(planejado);
+
+  // Completa até 3 com os mais próximos de iniciar
+  if (picked.length < 3) {
+    const resto = ativos
+      .filter((c) => !used.has(c.id))
+      .sort(compararProximidadeInicio);
+    for (const c of resto) {
+      if (picked.length >= 3) break;
+      used.add(c.id);
+      picked.push(c);
+    }
+  }
+
+  return picked.slice(0, 3);
+}
+
 /** Detalhes usados na modal de inscrição (mesmo conteúdo do material de divulgação). */
 export async function fetchCursoDivulgacao(
   cursoId: string

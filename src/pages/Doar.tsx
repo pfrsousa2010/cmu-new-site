@@ -39,10 +39,16 @@ export default function Doar() {
       <h1 className="mb-3 font-display text-[42px] font-black">
         Doe aqui <span className="text-laranja">♥</span>
       </h1>
-      <p className="m-0 mb-10 max-w-[600px] text-[17px] leading-[1.6] text-ink-2">
+      <p className="m-0 mb-8 max-w-[600px] text-[17px] leading-[1.6] text-ink-2">
         Sua doação mantém nossos cursos 100% gratuitos e transforma vidas em
         Londrina. Qualquer valor faz diferença.
       </p>
+
+      <img
+        src="/doe/doe.avif"
+        alt="Doe para o Clube das Mães Unidas"
+        className="mb-10 w-full rounded-2xl object-cover"
+      />
 
       <div className="grid grid-cols-1 gap-[22px] md:grid-cols-2">
         {/* PIX */}

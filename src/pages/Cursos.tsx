@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   fetchCursos,
   statusDe,
@@ -28,11 +29,16 @@ const FILTROS: { key: Filtro; label: string }[] = [
 ];
 
 export default function Cursos() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [cursos, setCursos] = useState<CursoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<Filtro>("todos");
-  const [busca, setBusca] = useState("");
+  const [busca, setBusca] = useState(() => searchParams.get("busca") ?? "");
   const [cursoInscricaoId, setCursoInscricaoId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setBusca(searchParams.get("busca") ?? "");
+  }, [searchParams]);
 
   useEffect(() => {
     let ativo = true;
@@ -45,6 +51,14 @@ export default function Cursos() {
       ativo = false;
     };
   }, []);
+
+  const atualizarBusca = (valor: string) => {
+    setBusca(valor);
+    const next = new URLSearchParams(searchParams);
+    if (valor.trim()) next.set("busca", valor);
+    else next.delete("busca");
+    setSearchParams(next, { replace: true });
+  };
 
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -91,7 +105,7 @@ export default function Cursos() {
           id="busca-curso"
           type="search"
           value={busca}
-          onChange={(e) => setBusca(e.target.value)}
+          onChange={(e) => atualizarBusca(e.target.value)}
           placeholder="Buscar curso pelo nome…"
           aria-label="Buscar curso pelo nome"
           className="w-full max-w-md rounded-xl border-[1.5px] border-black/[.12] bg-white px-4 py-[13px] text-[15px] text-ink outline-none transition-colors placeholder:text-ink-2/70 focus:border-azul"
