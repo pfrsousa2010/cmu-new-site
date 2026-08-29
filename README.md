@@ -29,6 +29,7 @@ supabase/migrations/20260715160000_parceiros_select_public.sql
 supabase/migrations/20260715170000_conteudos_select_public.sql
 supabase/migrations/20260715180000_arquivos_visivel_site.sql
 supabase/migrations/20260715190000_cursos_imagem_url.sql
+supabase/migrations/20260829120000_site_hero_imagens.sql
 ```
 
 A migração principal (`site_cmu`) cria:
@@ -97,6 +98,9 @@ entra na **lista de espera** — o SGE continua aceitando.
 - **Visão geral** — stats derivados do Supabase + atividade recente + ações rápidas.
 - **Eventos e fotos** — CRUD de eventos; fotos vão para o bucket `site-eventos`.
 - **Editais e arquivos** — upload para o bucket `site-arquivos` + registro na tabela.
+- **Carrossel da Home** — fotos do topo da página inicial: upload (arrastar ou
+  escolher), ordem, publicar/ocultar e remover. Bucket `site-hero`. Sem nenhuma
+  foto publicada, o site usa as 11 imagens originais de `/public`.
 - **Cursos (SGE)** — lista sincronizada com o SGE; imagem do card (anexar ou Unsplash)
   e toggle Visível no site (`visivel_site`). A abertura de inscrições não é
   controlada aqui: vem da janela configurada no próprio SGE.
@@ -123,7 +127,7 @@ Deploy em Vercel ou Netlify. Como é SPA com React Router, garanta o fallback pa
 ```
 src/
   App.tsx              rotas públicas + /admin protegida
-  lib/                 supabase, cursos, eventos, arquivos, refImages
+  lib/                 supabase, cursos, eventos, arquivos, hero, refImages
   hooks/useAuth.tsx    contexto de autenticação
   components/          PublicLayout, Modal, Toast, ScrollToTop
   pages/               10 páginas públicas

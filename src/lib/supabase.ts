@@ -21,6 +21,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 export const BUCKET_EVENTOS = "site-eventos";
 export const BUCKET_ARQUIVOS = "site-arquivos";
 export const BUCKET_CURSOS = "site-cursos";
+export const BUCKET_HERO = "site-hero";
 
 /** URL pública de um objeto no Storage. */
 export function publicUrl(bucket: string, path: string): string {

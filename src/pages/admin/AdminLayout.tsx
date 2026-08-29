@@ -7,6 +7,7 @@ const MENU = [
   { to: "/admin/eventos", label: "Eventos e fotos", icone: "📅" },
   { to: "/admin/arquivos", label: "Editais e arquivos", icone: "📄" },
   { to: "/admin/cursos", label: "Cursos (SGE)", icone: "🎓" },
+  { to: "/admin/hero", label: "Carrossel da Home", icone: "🖼" },
 ];
 
 function iniciais(nome?: string | null, email?: string | null) {

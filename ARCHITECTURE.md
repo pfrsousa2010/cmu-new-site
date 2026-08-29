@@ -17,7 +17,7 @@ Navegador (SPA React + Vite)
       ▼
 Supabase  ├── Postgres  — tabelas do site (site_*) + tabelas do SGE (leitura)
           ├── Auth      — e-mail/senha, sessão em localStorage (PKCE)
-          └── Storage   — buckets site-eventos / site-arquivos / site-cursos
+          └── Storage   — buckets site-eventos / site-arquivos / site-cursos / site-hero
 ```
 
 Consequência central: **a fronteira de segurança é o RLS do Postgres**, não o
@@ -25,8 +25,8 @@ código React. Tudo que o cliente pode fazer com a chave `anon` está definido n
 policies em `supabase/migrations/`. Checagens no front (role admin, rota
 protegida) são conveniência de UI.
 
-Escala do código: ~6.000 linhas de TS/TSX, 10 páginas públicas, 4 telas de
-admin, 3 módulos de dados.
+Escala do código: ~6.000 linhas de TS/TSX, 10 páginas públicas, 5 telas de
+admin, 4 módulos de dados.
 
 ## 2. Stack e decisões
 
@@ -51,7 +51,7 @@ src/main.tsx          BrowserRouter + StrictMode
   └── src/App.tsx     AuthProvider > ToastProvider > ScrollToTop > Routes
         ├── PublicLayout (Outlet)   →  src/pages/*.tsx        (10 páginas)
         └── RequireAuth > AdminLayout (Outlet)
-                                    →  src/pages/admin/*.tsx  (4 telas)
+                                    →  src/pages/admin/*.tsx  (5 telas)
 
 src/lib/*.ts     ÚNICA camada que fala com Supabase (+ src/hooks/useAuth.tsx)
 src/hooks/       contexto de autenticação
@@ -105,6 +105,11 @@ tabela `cursos` do SGE e concentra as regras do domínio:
 - Formatadores e rótulos: `fmtDataCurta`, `formatDiasSemana`,
   `formatCargaHoraria`, `DIAS_LABEL`, `PERIODOS_LABEL`, `STATUS_META`.
 
+**[hero.ts](src/lib/hero.ts)** — fotos do carrossel da Home
+(`site_hero_imagens` + bucket `site-hero`): CRUD, publicação, reordenação por
+troca de `ordem` e `HERO_FALLBACK`, a lista original em `/public` usada
+enquanto ninguém publicar foto no painel.
+
 **[eventos.ts](src/lib/eventos.ts)** — CRUD de `site_eventos` +
 `site_evento_fotos`, upload/remoção no bucket `site-eventos`, ordenação da
 agenda (`ordenarEventosAgenda`, futuros primeiro) e conversão de datas BR ↔ ISO.
@@ -147,7 +152,8 @@ footer): `/`, `/sobre`, `/projetos`, `/cursos`, `/eventos`, `/parceiros`,
 **Admin** — `/admin/login` fora da proteção; `/admin` envolvida por `RequireAuth`
 (mostra "Carregando…" enquanto `loading`, redireciona para o login se faltar
 sessão **ou** role admin) e por `AdminLayout` (sidebar + Outlet): `/admin`
-(Dashboard), `/admin/eventos`, `/admin/arquivos`, `/admin/cursos`.
+(Dashboard), `/admin/eventos`, `/admin/arquivos`, `/admin/cursos`,
+`/admin/hero`.
 
 Qualquer outra rota cai em `<Navigate to="/" replace />`. `ScrollToTop` sobe a
 página a cada navegação. A página `/cursos` persiste a busca em query string
@@ -160,10 +166,10 @@ Daí toda a nomenclatura:
 
 | Origem | Objetos | Acesso deste repo |
 |---|---|---|
-| Site (criados aqui) | `site_eventos`, `site_evento_fotos`, `site_arquivos` | leitura + escrita |
+| Site (criados aqui) | `site_eventos`, `site_evento_fotos`, `site_arquivos`, `site_hero_imagens` | leitura + escrita |
 | SGE (preexistentes) | `cursos` | leitura + escrita restrita a `visivel_site` e `imagem_url` |
 | SGE | `inscricoes`, `parceiros`, `unidades`, `conteudos`, `curso_conteudos`, `pre_requisitos_atividade`, `profiles` | somente leitura |
-| Storage | `site-eventos`, `site-arquivos`, `site-cursos` | leitura pública, escrita autenticada |
+| Storage | `site-eventos`, `site-arquivos`, `site-cursos`, `site-hero` | leitura pública, escrita autenticada |
 
 O prefixo `site_`/`site-` existe porque o SGE **já tem uma tabela `eventos`** com
 schema completamente diferente (agenda de aulas). Colisão evitada por convenção,
@@ -182,6 +188,8 @@ não por schema separado.
 5. `20260715190000_cursos_imagem_url.sql` — `cursos.imagem_url`, bucket
    `site-cursos`, e **recriação completa** das duas policies de
    `storage.objects` (elas listam os buckets explicitamente).
+6. `20260829120000_site_hero_imagens.sql` — tabela `site_hero_imagens`, bucket
+   `site-hero` e nova recriação das policies de `storage.objects`.
 
 Padrão RLS em toda tabela do site: `select using (true)` para qualquer um;
 `for all to authenticated using (true) with check (true)` para escrita. Ou seja,
@@ -255,6 +263,7 @@ Assumidos e documentados, não descuidos:
 | Nova página pública | `src/pages/`, registrar rota em `App.tsx`, item em `NAV` no `PublicLayout` |
 | Nova tela de admin | `src/pages/admin/`, rota filha de `/admin` em `App.tsx`, link no `AdminLayout` |
 | Nova entidade de dados | migração em `supabase/migrations/` (tabela `site_*` + RLS + bucket se precisar) → módulo em `src/lib/` → só então a UI |
+| Fotos do carrossel da Home | `src/lib/hero.ts` + `src/pages/admin/AdminHero.tsx` |
 | Mudar regra de status/visibilidade de curso | `src/lib/cursos.ts` (`statusDe`, `inscricoesAbertas`, `isVisivel`, `isAtivoNoSite`) |
 | Ajustar cores, sombras, fontes | `tailwind.config.ts` (não CSS solto) |
 | Autenticação / autorização | `src/hooks/useAuth.tsx` + `src/pages/admin/RequireAuth.tsx` |

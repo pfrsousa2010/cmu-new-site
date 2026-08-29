@@ -22,6 +22,7 @@ import Dashboard from "./pages/admin/Dashboard";
 import AdminEventos from "./pages/admin/AdminEventos";
 import AdminArquivos from "./pages/admin/AdminArquivos";
 import AdminCursos from "./pages/admin/AdminCursos";
+import AdminHero from "./pages/admin/AdminHero";
 
 export default function App() {
   return (
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="eventos" element={<AdminEventos />} />
             <Route path="arquivos" element={<AdminArquivos />} />
             <Route path="cursos" element={<AdminCursos />} />
+            <Route path="hero" element={<AdminHero />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

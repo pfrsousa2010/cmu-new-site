@@ -11,20 +11,14 @@ import {
   type StatusCurso,
 } from "@/lib/cursos";
 import { CURSO_FALLBACK } from "@/lib/refImages";
+import {
+  fetchHeroImagens,
+  urlHero,
+  HERO_FALLBACK,
+  type HeroImagem,
+} from "@/lib/hero";
 
-const HERO_FOTOS = [
-  "/sobre-nos/04c518_0422ce93c8c44973a338f68ce10b227b~mv2.avif",
-  "/sobre-nos/04c518_04f3154884c94bb194263e71e7e76899~mv2.avif",
-  "/sobre-nos/04c518_142944292c9b45f1a6b4d15a918d7b18~mv2.avif",
-  "/sobre-nos/04c518_551ca846c7e142458ac05b3964563c73~mv2.avif",
-  "/sobre-nos/04c518_6a530e9a6fb4442fae359c9931a0baa2~mv2.avif",
-  "/sobre-nos/04c518_6c171a90a57f4d6da5b3997a0e5f30aa~mv2.avif",
-  "/sobre-nos/04c518_93ea2b34f5e54a888b3511bb98bdc5c1~mv2.avif",
-  "/sobre-nos/04c518_9eaca1b8bdfa48bf83f8d04e266a3ca4~mv2.avif",
-  "/sobre-nos/04c518_a209a26536014f3fb7a563b2b3945c00~mv2.avif",
-  "/sobre-nos/04c518_a8e6be6f5d3f4cc69f8ee875a36719d9~mv2.avif",
-  "/sobre-nos/e7e902_feb773fdef5747039c2ede0def345afd~mv2.avif",
-];
+type HeroFoto = { src: string; alt: string };
 
 const TAG_HOME: Record<
   Exclude<StatusCurso, "finalizado">,
@@ -35,17 +29,44 @@ const TAG_HOME: Record<
   planejado: { tag: "CURSO · EM BREVE", tagColor: "text-laranja" },
 };
 
+/** Fotos do banco; enquanto ninguém publicar nenhuma, usa as de /public. */
+function fotosDe(imagens: HeroImagem[]): HeroFoto[] {
+  if (imagens.length > 0) {
+    return imagens.map((img, i) => ({
+      src: urlHero(img),
+      alt: img.legenda?.trim() || `Alunas em atividade ${i + 1}`,
+    }));
+  }
+  return HERO_FALLBACK.map((src, i) => ({
+    src,
+    alt: `Alunas em atividade ${i + 1}`,
+  }));
+}
+
 function HeroCarousel() {
+  const [fotos, setFotos] = useState<HeroFoto[]>(() => fotosDe([]));
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    if (paused) return;
+    let ativo = true;
+    fetchHeroImagens().then((imagens) => {
+      if (!ativo) return;
+      setFotos(fotosDe(imagens));
+      setIndex(0);
+    });
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (paused || fotos.length <= 1) return;
     const id = window.setInterval(() => {
-      setIndex((i) => (i + 1) % HERO_FOTOS.length);
+      setIndex((i) => (i + 1) % fotos.length);
     }, 4000);
     return () => window.clearInterval(id);
-  }, [paused]);
+  }, [paused, fotos.length]);
 
   return (
     <div
@@ -53,11 +74,11 @@ function HeroCarousel() {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {HERO_FOTOS.map((src, i) => (
+      {fotos.map((foto, i) => (
         <img
-          key={src}
-          src={src}
-          alt={`Alunas em atividade ${i + 1}`}
+          key={foto.src}
+          src={foto.src}
+          alt={foto.alt}
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out ${
             i === index ? "opacity-100" : "opacity-0"
           }`}
@@ -65,7 +86,7 @@ function HeroCarousel() {
       ))}
       <div className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/35 to-transparent" />
       <div className="absolute left-1/2 top-4 z-10 flex -translate-x-1/2 gap-1.5">
-        {HERO_FOTOS.map((_, i) => (
+        {fotos.map((_, i) => (
           <button
             key={i}
             type="button"
