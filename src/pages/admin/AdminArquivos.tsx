@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Modal from "@/components/Modal";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import {
   fetchArquivosAdmin,
@@ -76,6 +77,9 @@ export default function AdminArquivos() {
   const [aba, setAba] = useState<"todos" | CategoriaArquivo>("todos");
   const [subFiltro, setSubFiltro] = useState<"todos" | SubcatTransparencia>("todos");
   const [busca, setBusca] = useState("");
+  const [confirmarRemocao, setConfirmarRemocao] = useState<ArquivoRow | null>(
+    null
+  );
   const [pending, setPending] = useState<Record<string, boolean>>({});
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -197,7 +201,7 @@ export default function AdminArquivos() {
   };
 
   const remover = async (a: ArquivoRow) => {
-    if (!confirm(`Remover "${a.nome}"?`)) return;
+    setConfirmarRemocao(null);
     try {
       await removerArquivo(a);
       await recarregar();
@@ -458,7 +462,7 @@ export default function AdminArquivos() {
                       Baixar
                     </a>
                     <button
-                      onClick={() => remover(ar)}
+                      onClick={() => setConfirmarRemocao(ar)}
                       className="rounded-lg border border-vermelho/20 bg-vermelho/[.06] px-3 py-2.5 text-[13px] font-bold text-vermelho transition-colors hover:bg-vermelho/[.12] sm:border-0 sm:bg-transparent sm:px-[11px] sm:py-[7px] sm:hover:bg-vermelho/[.08]"
                     >
                       Remover
@@ -600,6 +604,18 @@ export default function AdminArquivos() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={Boolean(confirmarRemocao)}
+        titulo="Remover este arquivo?"
+        descricao={
+          confirmarRemocao
+            ? `"${confirmarRemocao.nome}" sai do site e o arquivo é apagado. Não dá para desfazer.`
+            : undefined
+        }
+        onConfirm={() => confirmarRemocao && void remover(confirmarRemocao)}
+        onClose={() => setConfirmarRemocao(null)}
+      />
     </div>
   );
 }
