@@ -13,7 +13,10 @@ export interface CursoRow {
   periodo: Periodo;
   /** Pode vir como "seg" ou "segunda", conforme o gestor. */
   dia_semana: string[];
+  /** Tamanho da turma (quantas pessoas o curso comporta). */
   vagas: number | null;
+  /** Teto de inscrições configurado no SGE. null/0 => sem limite. */
+  max_inscricoes?: number | null;
   qtd_alunos_iniciaram: number | null;
   /** Contagem de linhas em `inscricoes` com status `inscrito` (preenchida no fetch público). */
   qtd_inscritos?: number | null;
@@ -28,7 +31,6 @@ export interface CursoRow {
   horario_atendimento_inicio?: string | null;
   unidade_id?: string | null;
   atendimento_unidade_id?: string | null;
-  inscricoes_ativa: boolean;
   inscricoes_inicio?: string | null;
   inscricoes_fim?: string | null;
   is_planejado: boolean;
@@ -51,6 +53,9 @@ export interface CursoDivulgacao {
   inicio: string;
   fim: string;
   vagas: number | null;
+  max_inscricoes: number | null;
+  /** Inscritos atuais (status `inscrito`), para calcular lista de espera. */
+  qtd_inscritos: number;
   periodo: Periodo;
   dia_semana: string[];
   objetivo_curso: string | null;
@@ -194,16 +199,16 @@ export function inscricoesAbertas(c: CursoRow): boolean {
 /**
  * Regra de status (só cursos com is_planejado = false entram no site):
  * - finalizado: data fim do curso anterior a hoje
- * - inscricoes: período configurado e vigente + toggle inscricoes_ativa
+ * - inscricoes: janela inscricoes_inicio/inscricoes_fim vigente
  * - planejado (Em breve): data inicio do curso posterior a hoje
  * - andamento: demais
  *
- * Curso "Em breve" com janela de inscrição vigente só vira "Inscrições abertas"
- * se o toggle estiver ligado; caso contrário permanece "Em breve".
+ * A janela de inscrição é a mesma fonte de verdade que o SGE usa na página
+ * pública de inscrição — não há toggle separado no site.
  */
 export function statusDe(c: CursoRow): StatusCurso {
   if (c.fim && c.fim < hojeISO()) return "finalizado";
-  if (c.inscricoes_ativa && inscricoesAbertas(c)) return "inscricoes";
+  if (inscricoesAbertas(c)) return "inscricoes";
   if (c.inicio && c.inicio > hojeISO()) return "planejado";
   return "andamento";
 }
@@ -212,11 +217,36 @@ export function isAtivoNoSite(c: CursoRow): boolean {
   return statusDe(c) !== "finalizado";
 }
 
-export function vagasRestantes(c: CursoRow): number {
-  // Preferência: inscritos na fase de inscrição (tabela inscricoes).
-  // Fallback: alunos que já iniciaram o curso (campo legado).
-  const ocupadas = c.qtd_inscritos ?? c.qtd_alunos_iniciaram ?? 0;
-  return Math.max((c.vagas ?? 0) - ocupadas, 0);
+/** Campos de limite de inscrição, comuns a CursoRow e CursoDivulgacao. */
+export type ComLimiteInscricao = {
+  max_inscricoes?: number | null;
+  qtd_inscritos?: number | null;
+};
+
+/**
+ * Teto de inscrições configurado pelo gestor no SGE (`max_inscricoes`).
+ * null/0 => sem limite. Não confundir com `vagas`, que é o tamanho da turma:
+ * o SGE costuma aceitar várias inscrições por vaga (seleção posterior).
+ */
+export function limiteInscricoes(c: ComLimiteInscricao): number | null {
+  const max = c.max_inscricoes;
+  return max != null && Number(max) > 0 ? Number(max) : null;
+}
+
+/** Inscrições restantes até o teto. null quando não há limite configurado. */
+export function vagasRestantes(c: ComLimiteInscricao): number | null {
+  const max = limiteInscricoes(c);
+  if (max == null) return null;
+  return Math.max(max - (c.qtd_inscritos ?? 0), 0);
+}
+
+/**
+ * Teto atingido: o SGE continua aceitando a inscrição, mas o candidato entra
+ * na lista de espera. Mesma regra de `avaliarDisponibilidadeInscricao` no SGE.
+ */
+export function emListaEspera(c: ComLimiteInscricao): boolean {
+  const max = limiteInscricoes(c);
+  return max != null && (c.qtd_inscritos ?? 0) >= max;
 }
 
 /** Retorna só o primeiro e o último nome (ex.: "Mary … Miné" → "Mary Miné"). */
@@ -409,7 +439,7 @@ export async function fetchCursoDivulgacao(
     .from("cursos")
     .select(
       `
-      id, titulo, inicio, fim, vagas, periodo, dia_semana,
+      id, titulo, inicio, fim, vagas, max_inscricoes, periodo, dia_semana,
       objetivo_curso, carga_horaria_total, carga_horaria_diaria,
       horario_aula_inicio, horario_aula_fim, data_selecao,
       horario_atendimento_inicio, inscricoes_inicio, inscricoes_fim,
@@ -442,18 +472,27 @@ export async function fetchCursoDivulgacao(
     if (und) localAtendimento = und;
   }
 
-  const [{ data: prereqs }, { data: cursoConteudos, error: conteudosError }] =
-    await Promise.all([
-      supabase
-        .from("pre_requisitos_atividade")
-        .select("descricao, ordem")
-        .eq("curso_id", cursoId)
-        .order("ordem", { ascending: true }),
-      supabase
-        .from("curso_conteudos")
-        .select("conteudo_id, conteudos(nome)")
-        .eq("curso_id", cursoId),
-    ]);
+  const [
+    { data: prereqs },
+    { data: cursoConteudos, error: conteudosError },
+    { count: inscritos },
+  ] = await Promise.all([
+    supabase
+      .from("pre_requisitos_atividade")
+      .select("descricao, ordem")
+      .eq("curso_id", cursoId)
+      .order("ordem", { ascending: true }),
+    supabase
+      .from("curso_conteudos")
+      .select("conteudo_id, conteudos(nome)")
+      .eq("curso_id", cursoId),
+    // Mesmo critério do SGE para medir a ocupação do teto de inscrições.
+    supabase
+      .from("inscricoes")
+      .select("id", { count: "exact", head: true })
+      .eq("curso_id", cursoId)
+      .eq("status", "inscrito"),
+  ]);
 
   if (conteudosError) {
     console.error("Erro ao buscar conteúdos do curso:", conteudosError.message);
@@ -473,6 +512,8 @@ export async function fetchCursoDivulgacao(
     inicio: row.inicio,
     fim: row.fim,
     vagas: row.vagas,
+    max_inscricoes: row.max_inscricoes ?? null,
+    qtd_inscritos: inscritos ?? 0,
     periodo: row.periodo,
     dia_semana: row.dia_semana ?? [],
     objetivo_curso: row.objetivo_curso ?? null,
@@ -516,22 +557,6 @@ export async function fetchCursosAdmin(): Promise<CursoRow[]> {
   return ((data ?? []) as CursoRow[]).filter(
     (c) => !c.percurso_id && !c.is_planejado
   );
-}
-
-/** Toggle de inscrição só se o período estiver configurado e ainda não encerrado. */
-export function podeAlternarInscricoes(c: CursoRow): boolean {
-  if (!c.inscricoes_inicio || !c.inscricoes_fim) return false;
-  const fim = new Date(c.inscricoes_fim).getTime();
-  if (Number.isNaN(fim)) return false;
-  return Date.now() <= fim;
-}
-
-export async function setInscricoesAtiva(id: string, ativa: boolean): Promise<void> {
-  const { error } = await supabase
-    .from("cursos")
-    .update({ inscricoes_ativa: ativa })
-    .eq("id", id);
-  if (error) throw error;
 }
 
 export async function setVisivelSite(id: string, visivel: boolean): Promise<void> {

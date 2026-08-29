@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchCursos, isVisivel, type CursoRow } from "@/lib/cursos";
+import { fetchCursos, isVisivel, statusDe, type CursoRow } from "@/lib/cursos";
 import { fetchEventosAdmin, ehFuturo, type EventoRow } from "@/lib/eventos";
 import { fetchArquivosAdmin, type ArquivoRow } from "@/lib/arquivos";
 
@@ -99,7 +99,9 @@ export default function Dashboard() {
   if (loading) return <DashboardSkeleton />;
 
   const visiveis = cursos.filter(isVisivel).length;
-  const abertas = cursos.filter((c) => c.inscricoes_ativa && !c.is_cancelado).length;
+  const abertas = cursos.filter(
+    (c) => statusDe(c) === "inscricoes" && !c.is_cancelado
+  ).length;
   const proximos = eventos.filter((e) => ehFuturo(e.data)).length;
 
   const stats = [

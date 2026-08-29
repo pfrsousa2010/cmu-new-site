@@ -6,6 +6,8 @@ import {
   isVisivel,
   isAtivoNoSite,
   vagasRestantes,
+  limiteInscricoes,
+  emListaEspera,
   nomeCurto,
   fmtDataCurta,
   fmtDataHora,
@@ -149,8 +151,10 @@ function CursoCard({
 }) {
   const st = statusDe(curso);
   const meta = STATUS_META[st];
+  const limite = limiteInscricoes(curso);
   const restantes = vagasRestantes(curso);
-  const total = curso.vagas ?? 0;
+  const listaEspera = emListaEspera(curso);
+  const vagasTurma = curso.vagas ?? 0;
   const temImagem = Boolean(curso.imagem_url);
   const img = curso.imagem_url || CURSO_FALLBACK;
   const dias = curso.dia_semana
@@ -213,20 +217,30 @@ function CursoCard({
                     : ""}
                 </div>
               )}
-              <div className="text-[12.5px] font-bold text-ink-mid">
-                {restantes} de {total} disponíveis
-              </div>
+              {listaEspera ? (
+                <div className="rounded-lg bg-laranja/[.1] px-2.5 py-1.5 text-[12.5px] font-bold leading-[1.4] text-laranja-hover">
+                  Vagas esgotadas — novas inscrições entram na lista de espera
+                </div>
+              ) : limite != null ? (
+                <div className="text-[12.5px] font-bold text-ink-mid">
+                  {restantes} de {limite} inscrições disponíveis
+                </div>
+              ) : (
+                <div className="text-[12.5px] font-bold text-ink-mid">
+                  Inscrições sem limite de vagas
+                </div>
+              )}
               <button
                 type="button"
                 onClick={onInscrever}
                 className="mt-3.5 w-full rounded-xl bg-verde px-3 py-[11px] text-center font-display text-[14.5px] font-extrabold text-white transition-colors hover:bg-verde-hover"
               >
-                Inscreva-se
+                {listaEspera ? "Entrar na lista de espera" : "Inscreva-se"}
               </button>
             </>
           ) : (
             <div className="text-[12.5px] font-bold text-ink-mid">
-              {total} {total === 1 ? "vaga" : "vagas"}
+              {vagasTurma} {vagasTurma === 1 ? "vaga" : "vagas"} na turma
             </div>
           )}
         </div>

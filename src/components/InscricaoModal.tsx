@@ -9,6 +9,9 @@ import {
   fmtDataHora,
   sliceHhmm,
   urlInscricaoPublica,
+  limiteInscricoes,
+  vagasRestantes,
+  emListaEspera,
   type CursoDivulgacao,
 } from "@/lib/cursos";
 
@@ -70,6 +73,10 @@ export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps
       ? `${dataAtend} às ${horaAtend}`
       : dataAtend || horaAtend || "Não definido";
 
+  const limiteInsc = info ? limiteInscricoes(info) : null;
+  const restantesInsc = info ? vagasRestantes(info) : null;
+  const listaEspera = info ? emListaEspera(info) : false;
+
   const handleInscrever = () => {
     if (!cursoId) return;
     window.open(urlInscricaoPublica(cursoId), "_blank", "noopener,noreferrer");
@@ -117,9 +124,27 @@ export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps
           </div>
 
           <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-8 py-5">
+            {listaEspera && (
+              <div className="rounded-2xl bg-laranja/[.1] px-5 py-4 text-[14.5px] leading-[1.6] text-ink">
+                <b>Vagas esgotadas.</b> Sua inscrição continua sendo aceita, mas
+                entra na <b>lista de espera</b>: se uma vaga for liberada, a
+                equipe entra em contato.
+              </div>
+            )}
+
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {info.vagas != null && info.vagas > 0 && (
-                <MetaChip label="Vagas" value={String(info.vagas)} />
+              {listaEspera ? (
+                <MetaChip label="Inscrições" value={"Lista\nde espera"} />
+              ) : limiteInsc != null ? (
+                <MetaChip
+                  label="Vagas para inscrição"
+                  value={`${restantesInsc} de ${limiteInsc}`}
+                />
+              ) : (
+                info.vagas != null &&
+                info.vagas > 0 && (
+                  <MetaChip label="Vagas na turma" value={String(info.vagas)} />
+                )
               )}
               {carga && <MetaChip label="Carga horária" value={carga} />}
               {(diasLabel || horarioAulaFmt) && (
@@ -197,7 +222,7 @@ export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps
               onClick={handleInscrever}
               className="rounded-full bg-verde px-7 py-3 font-display text-sm font-extrabold text-white shadow-[0_3px_10px_rgba(98,179,46,.3)] transition-colors hover:bg-verde-hover"
             >
-              Inscrever agora!
+              {listaEspera ? "Entrar na lista de espera" : "Inscrever agora!"}
             </button>
           </div>
         </>

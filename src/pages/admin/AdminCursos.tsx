@@ -4,13 +4,11 @@ import { useToast } from "@/components/Toast";
 import { CURSO_FALLBACK } from "@/lib/refImages";
 import {
   fetchCursosAdmin,
-  setInscricoesAtiva,
   setVisivelSite,
   setCursoImagem,
   removerCursoImagem,
   validarImagemCurso,
   isVisivel,
-  podeAlternarInscricoes,
   nomeCurto,
   fmtDiaMes,
   PERIODOS_LABEL,
@@ -177,31 +175,6 @@ export default function AdminCursos() {
     }
   };
 
-  const toggleInsc = async (c: CursoRow) => {
-    if (!podeAlternarInscricoes(c)) return;
-    const novo = !c.inscricoes_ativa;
-    setPending((p) => ({ ...p, [c.id]: true }));
-    setCursos((cs) =>
-      cs.map((x) => (x.id === c.id ? { ...x, inscricoes_ativa: novo } : x))
-    );
-    try {
-      await setInscricoesAtiva(c.id, novo);
-      toast(
-        novo
-          ? `Inscrições abertas: ${c.titulo}`
-          : `Inscrições fechadas: ${c.titulo}`
-      );
-    } catch (err) {
-      setCursos((cs) =>
-        cs.map((x) => (x.id === c.id ? { ...x, inscricoes_ativa: !novo } : x))
-      );
-      toast("Erro ao atualizar inscrições");
-      console.error(err);
-    } finally {
-      setPending((p) => ({ ...p, [c.id]: false }));
-    }
-  };
-
   const toggleVis = async (c: CursoRow) => {
     const novo = !isVisivel(c);
     setPending((p) => ({ ...p, [c.id]: true }));
@@ -223,7 +196,7 @@ export default function AdminCursos() {
   };
 
   const cols =
-    "grid-cols-[88px_1.8fr_1fr_1.1fr_0.7fr_0.55fr_100px_100px]";
+    "grid-cols-[88px_1.8fr_1fr_1.1fr_0.7fr_0.55fr_120px]";
 
   return (
     <div>
@@ -243,8 +216,9 @@ export default function AdminCursos() {
       <p className="m-0 mb-5 max-w-[640px] text-[14.5px] leading-[1.55] text-ink-2">
         Os cursos são gerenciados no Sistema de Gestão de Educacional (SGE - CMU) e aparecem automaticamente no
         site (sem percursos e sem planejados). Aqui você
-        controla <b>imagem do card</b>, <b>visibilidade</b> e{" "}
-        <b>inscrições</b>. Sem imagem, o site usa a logo CMU.
+        controla <b>imagem do card</b> e <b>visibilidade</b>. As inscrições
+        abrem e fecham pelo período configurado no próprio SGE. Sem imagem, o
+        site usa a logo CMU.
       </p>
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -278,16 +252,10 @@ export default function AdminCursos() {
           {/* Mobile cards */}
           <div className="grid gap-3 lg:hidden">
             {filtrados.map((c) => {
-              const insc = c.inscricoes_ativa;
               const vis = isVisivel(c);
               const busy = pending[c.id];
-              const podeInsc = podeAlternarInscricoes(c);
               const st = statusDe(c);
               const meta = STATUS_META[st];
-              const motivoInsc =
-                !c.inscricoes_inicio || !c.inscricoes_fim
-                  ? "Período de inscrição não configurado"
-                  : "Período de inscrição encerrado";
               const temImg = Boolean(c.imagem_url);
               const professor = c.parceiro_id ? null : nomeCurto(c.professor);
               const parceiro = c.parceiro_id
@@ -364,26 +332,6 @@ export default function AdminCursos() {
                   </div>
 
                   <div className="mt-3.5 grid gap-2 border-t border-black/[.06] pt-3.5">
-                    <div
-                      className="flex items-center justify-between gap-3 rounded-[10px] bg-subtle/80 px-3.5 py-2.5"
-                      title={podeInsc ? undefined : motivoInsc}
-                    >
-                      <span className="min-w-0 text-[12.5px] font-bold leading-snug text-ink-2">
-                        Inscrições
-                        {!podeInsc && (
-                          <span className="font-semibold text-ink-3">
-                            {" "}
-                            ({motivoInsc})
-                          </span>
-                        )}
-                      </span>
-                      <Toggle
-                        on={insc}
-                        color="bg-verde"
-                        disabled={busy || !podeInsc}
-                        onClick={() => toggleInsc(c)}
-                      />
-                    </div>
                     <div className="flex items-center justify-between gap-3 rounded-[10px] bg-subtle/80 px-3.5 py-2.5">
                       <span className="text-[12.5px] font-bold text-ink-2">
                         Visível no site
@@ -413,20 +361,13 @@ export default function AdminCursos() {
                 <div>Parceiro</div>
                 <div>Período</div>
                 <div>Vagas</div>
-                <div>Inscrições</div>
                 <div>Visível no site</div>
               </div>
               {filtrados.map((c) => {
-                const insc = c.inscricoes_ativa;
                 const vis = isVisivel(c);
                 const busy = pending[c.id];
-                const podeInsc = podeAlternarInscricoes(c);
                 const st = statusDe(c);
                 const meta = STATUS_META[st];
-                const motivoInsc =
-                  !c.inscricoes_inicio || !c.inscricoes_fim
-                    ? "Período de inscrição não configurado"
-                    : "Período de inscrição encerrado";
                 const temImg = Boolean(c.imagem_url);
                 return (
                   <div
@@ -496,14 +437,6 @@ export default function AdminCursos() {
                       {PERIODOS_LABEL[c.periodo]}
                     </div>
                     <div className="text-sm text-ink-mid">{c.vagas ?? 0}</div>
-                    <div title={podeInsc ? undefined : motivoInsc}>
-                      <Toggle
-                        on={insc}
-                        color="bg-verde"
-                        disabled={busy || !podeInsc}
-                        onClick={() => toggleInsc(c)}
-                      />
-                    </div>
                     <div>
                       <Toggle
                         on={vis}

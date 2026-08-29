@@ -80,17 +80,26 @@ Eventos, Parceiros, Editais, Transparência, Doar (PIX/banco — placeholders) e
 Contato (formulário com estado de sucesso; envio real é TODO — sugerido edge
 function/serviço de e-mail).
 
-Regra de status dos cursos: `is_planejado` → **Em breve**; senão
-`inscricoes_ativa` → **Inscrições abertas**; senão **Em andamento**. Cursos com
-`is_cancelado = true` são excluídos e os ocultos (`visivel_site = false`) não
-aparecem. Sem `imagem_url`, o card usa a logo CMU.
+Regra de status dos cursos: `fim` no passado → **Finalizado** (excluído do
+site); senão janela `inscricoes_inicio`/`inscricoes_fim` vigente →
+**Inscrições abertas**; senão `inicio` no futuro → **Em breve**; senão **Em
+andamento**. A janela é a mesma fonte de verdade usada pela página pública de
+inscrição do SGE. Cursos com `is_cancelado = true` ou `is_planejado = true` são
+excluídos e os ocultos (`visivel_site = false`) não aparecem. Sem `imagem_url`,
+o card usa a logo CMU.
+
+As vagas mostradas na fase de inscrição vêm de `max_inscricoes` (teto de
+inscrições configurado no SGE), não de `vagas` (tamanho da turma). Quando os
+inscritos atingem esse teto, o card e a modal passam a avisar que a inscrição
+entra na **lista de espera** — o SGE continua aceitando.
 
 ### Painel (`/admin`)
 - **Visão geral** — stats derivados do Supabase + atividade recente + ações rápidas.
 - **Eventos e fotos** — CRUD de eventos; fotos vão para o bucket `site-eventos`.
 - **Editais e arquivos** — upload para o bucket `site-arquivos` + registro na tabela.
-- **Cursos (SGE)** — lista sincronizada com o SGE; imagem do card (anexar ou Unsplash),
-  toggles de Inscrições (`inscricoes_ativa`) e Visível no site (`visivel_site`).
+- **Cursos (SGE)** — lista sincronizada com o SGE; imagem do card (anexar ou Unsplash)
+  e toggle Visível no site (`visivel_site`). A abertura de inscrições não é
+  controlada aqui: vem da janela configurada no próprio SGE.
 
 ## Placeholders a substituir pelo cliente
 - QR code / chave PIX e dados bancários (`src/pages/Doar.tsx`).
