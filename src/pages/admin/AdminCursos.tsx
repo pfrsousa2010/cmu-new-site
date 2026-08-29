@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Modal from "@/components/Modal";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { CURSO_FALLBACK } from "@/lib/refImages";
 import {
@@ -10,11 +11,14 @@ import {
   validarImagemCurso,
   isVisivel,
   nomeCurto,
+  nomeUnidadeCurto,
+  limiteInscricoes,
   fmtDiaMes,
   PERIODOS_LABEL,
   STATUS_META,
   statusDe,
   type CursoRow,
+  type StatusCurso,
 } from "@/lib/cursos";
 import {
   unsplashConfigured,
@@ -25,12 +29,26 @@ import {
 
 type AbaImagem = "anexar" | "buscar";
 
+/** Mesmos status da página pública de cursos (finalizados nem chegam aqui). */
+type Filtro = "todos" | Exclude<StatusCurso, "finalizado">;
+
+const FILTROS: { key: Filtro; label: string }[] = [
+  { key: "todos", label: "Todos" },
+  { key: "inscricoes", label: "Inscrições abertas" },
+  { key: "andamento", label: "Em andamento" },
+  { key: "planejado", label: "Em breve" },
+];
+
 export default function AdminCursos() {
   const { toast } = useToast();
   const [cursos, setCursos] = useState<CursoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<Record<string, boolean>>({});
   const [busca, setBusca] = useState("");
+  const [filtro, setFiltro] = useState<Filtro>("todos");
+  const [confirmarRemocao, setConfirmarRemocao] = useState<CursoRow | null>(
+    null
+  );
 
   const [cursoImagem, setCursoImagemState] = useState<CursoRow | null>(null);
   const [abaImagem, setAbaImagem] = useState<AbaImagem>("anexar");
@@ -52,9 +70,27 @@ export default function AdminCursos() {
 
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
-    if (!termo) return cursos;
-    return cursos.filter((c) => c.titulo.toLowerCase().includes(termo));
-  }, [cursos, busca]);
+    return cursos.filter((c) => {
+      if (filtro !== "todos" && statusDe(c) !== filtro) return false;
+      if (termo && !c.titulo.toLowerCase().includes(termo)) return false;
+      return true;
+    });
+  }, [cursos, busca, filtro]);
+
+  /** Quantos cursos cada filtro traria, para mostrar no próprio botão. */
+  const contagens = useMemo(() => {
+    const acc: Record<Filtro, number> = {
+      todos: cursos.length,
+      inscricoes: 0,
+      andamento: 0,
+      planejado: 0,
+    };
+    for (const c of cursos) {
+      const st = statusDe(c);
+      if (st !== "finalizado") acc[st] += 1;
+    }
+    return acc;
+  }, [cursos]);
 
   const fecharModalImagem = () => {
     setCursoImagemState(null);
@@ -159,7 +195,7 @@ export default function AdminCursos() {
 
   const removerImagem = async (c: CursoRow) => {
     if (!c.imagem_url) return;
-    if (!confirm(`Remover a imagem de "${c.titulo}"?`)) return;
+    setConfirmarRemocao(null);
     setPending((p) => ({ ...p, [c.id]: true }));
     try {
       await removerCursoImagem(c);
@@ -196,7 +232,7 @@ export default function AdminCursos() {
   };
 
   const cols =
-    "grid-cols-[88px_1.8fr_1fr_1.1fr_0.7fr_0.55fr_120px]";
+    "grid-cols-[88px_2.4fr_1.2fr_1fr_120px]";
 
   return (
     <div>
@@ -221,7 +257,7 @@ export default function AdminCursos() {
         site usa a logo CMU.
       </p>
 
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <input
           type="search"
           value={busca}
@@ -232,12 +268,40 @@ export default function AdminCursos() {
         />
         {!loading && (
           <p className="m-0 text-[14px] font-bold text-ink-2">
-            {busca.trim()
-              ? `${filtrados.length} de ${cursos.length} ${cursos.length === 1 ? "curso" : "cursos"}`
-              : `${cursos.length} ${cursos.length === 1 ? "curso" : "cursos"}`}
+            {filtrados.length === cursos.length
+              ? `${cursos.length} ${cursos.length === 1 ? "curso" : "cursos"}`
+              : `${filtrados.length} de ${cursos.length} ${cursos.length === 1 ? "curso" : "cursos"}`}
           </p>
         )}
       </div>
+
+      {!loading && (
+        <div className="mb-5 flex flex-wrap gap-2">
+          {FILTROS.map((f) => {
+            const ativo = filtro === f.key;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                aria-pressed={ativo}
+                onClick={() => setFiltro(f.key)}
+                className={[
+                  "rounded-full border-[1.5px] px-[16px] py-2 text-[13px] font-bold transition-colors",
+                  ativo
+                    ? "border-azul bg-azul text-white"
+                    : "border-black/[.12] bg-white text-ink-mid hover:border-azul",
+                ].join(" ")}
+              >
+                {f.label}
+                <span className={ativo ? "text-white/70" : "text-ink-3"}>
+                  {" "}
+                  ({contagens[f.key]})
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {loading ? (
         <p className="text-ink-2">Carregando…</p>
@@ -245,7 +309,9 @@ export default function AdminCursos() {
         <p className="text-ink-2">Nenhum curso encontrado.</p>
       ) : filtrados.length === 0 ? (
         <p className="text-ink-2">
-          Nenhum curso encontrado para “{busca.trim()}”.
+          {busca.trim()
+            ? `Nenhum curso encontrado para “${busca.trim()}”${filtro !== "todos" ? " nesta categoria" : ""}.`
+            : "Nenhum curso nesta categoria no momento."}
         </p>
       ) : (
         <>
@@ -257,7 +323,9 @@ export default function AdminCursos() {
               const st = statusDe(c);
               const meta = STATUS_META[st];
               const temImg = Boolean(c.imagem_url);
-              const professor = c.parceiro_id ? null : nomeCurto(c.professor);
+              const professor = c.professor?.trim()
+                ? nomeCurto(c.professor)
+                : null;
               const parceiro = c.parceiro_id
                 ? (c.parceiros?.nome ?? "Parceiro")
                 : null;
@@ -298,7 +366,7 @@ export default function AdminCursos() {
                           <button
                             type="button"
                             disabled={busy}
-                            onClick={() => removerImagem(c)}
+                            onClick={() => setConfirmarRemocao(c)}
                             className="flex-1 rounded-md border border-vermelho/20 bg-vermelho/[.06] px-1.5 py-1 text-center text-[11px] font-bold text-vermelho disabled:opacity-50"
                           >
                             Remover
@@ -324,8 +392,14 @@ export default function AdminCursos() {
                       <div className="mt-2 space-y-0.5 text-[13px] text-ink-2">
                         {professor && <div>Prof.: {professor}</div>}
                         {parceiro && <div>Parceiro: {parceiro}</div>}
+                        {c.unidades?.nome && (
+                          <div>Unidade: {c.unidades.nome}</div>
+                        )}
                         <div>
-                          {PERIODOS_LABEL[c.periodo]} · {c.vagas ?? 0} vagas
+                          {PERIODOS_LABEL[c.periodo]} ·{" "}
+                          {limiteInscricoes(c) != null
+                            ? `${limiteInscricoes(c)} vagas de inscrição`
+                            : `${c.vagas ?? 0} vagas na turma`}
                         </div>
                       </div>
                     </div>
@@ -357,10 +431,8 @@ export default function AdminCursos() {
               >
                 <div>Imagem</div>
                 <div>Curso</div>
-                <div>Professor</div>
                 <div>Parceiro</div>
-                <div>Período</div>
-                <div>Vagas</div>
+                <div>Unidade</div>
                 <div>Visível no site</div>
               </div>
               {filtrados.map((c) => {
@@ -404,7 +476,7 @@ export default function AdminCursos() {
                           <button
                             type="button"
                             disabled={busy}
-                            onClick={() => removerImagem(c)}
+                            onClick={() => setConfirmarRemocao(c)}
                             className="rounded px-1.5 py-0.5 text-[11px] font-bold text-vermelho hover:bg-vermelho/[.08] disabled:opacity-50"
                           >
                             Remover
@@ -414,11 +486,19 @@ export default function AdminCursos() {
                     </div>
                     <div>
                       <div className="text-[14.5px] font-bold">{c.titulo}</div>
+                      {c.professor?.trim() && (
+                        <div className="mt-0.5 text-[12.5px] text-ink-2">
+                          Prof. {nomeCurto(c.professor)}
+                        </div>
+                      )}
                       <div className="mt-1.5 flex flex-wrap items-center gap-2">
                         <span
                           className={`rounded-full px-2.5 py-[3px] text-[11px] font-bold text-white ${meta.className}`}
                         >
                           {meta.label}
+                        </span>
+                        <span className="rounded-full bg-subtle px-2.5 py-[3px] text-[11px] font-bold text-ink-mid">
+                          {PERIODOS_LABEL[c.periodo]}
                         </span>
                         <span className="text-[12.5px] text-ink-3">
                           {fmtDiaMes(c.inicio)} – {fmtDiaMes(c.fim)}
@@ -426,17 +506,16 @@ export default function AdminCursos() {
                       </div>
                     </div>
                     <div className="text-sm text-ink-mid">
-                      {c.parceiro_id ? "—" : nomeCurto(c.professor)}
-                    </div>
-                    <div className="text-sm text-ink-mid">
                       {c.parceiro_id
                         ? (c.parceiros?.nome ?? "Parceiro")
                         : "—"}
                     </div>
-                    <div className="text-sm text-ink-mid">
-                      {PERIODOS_LABEL[c.periodo]}
+                    <div
+                      className="text-sm text-ink-mid"
+                      title={c.unidades?.nome ?? undefined}
+                    >
+                      {nomeUnidadeCurto(c.unidades?.nome)}
                     </div>
-                    <div className="text-sm text-ink-mid">{c.vagas ?? 0}</div>
                     <div>
                       <Toggle
                         on={vis}
@@ -627,6 +706,18 @@ export default function AdminCursos() {
           </button>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={Boolean(confirmarRemocao)}
+        titulo="Remover a imagem do curso?"
+        descricao={
+          confirmarRemocao
+            ? `"${confirmarRemocao.titulo}" volta a usar a logo do CMU no card do site.`
+            : undefined
+        }
+        onConfirm={() => confirmarRemocao && void removerImagem(confirmarRemocao)}
+        onClose={() => setConfirmarRemocao(null)}
+      />
     </div>
   );
 }

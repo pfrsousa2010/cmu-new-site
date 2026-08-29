@@ -42,6 +42,8 @@ export interface CursoRow {
   percurso_id?: string | null;
   parceiro_id?: string | null;
   parceiros?: { id: string; nome: string } | null;
+  /** Unidade onde o curso acontece (join em `unidades` pelo `unidade_id`). */
+  unidades?: { id?: string; nome: string } | null;
 }
 
 export type UnidadeResumo = { nome?: string | null; endereco?: string | null };
@@ -247,6 +249,26 @@ export function vagasRestantes(c: ComLimiteInscricao): number | null {
 export function emListaEspera(c: ComLimiteInscricao): boolean {
   const max = limiteInscricoes(c);
   return max != null && (c.qtd_inscritos ?? 0) >= max;
+}
+
+/**
+ * Nome de unidade em versão curta para caber nas colunas.
+ * Nomes longos viram sigla pelas iniciais das palavras significativas
+ * (ex.: "Centro de Profissionalização de Adolescentes e Jovens" → "CPAJ").
+ */
+const PALAVRAS_IGNORADAS = new Set(["de", "da", "do", "das", "dos", "e"]);
+
+export function nomeUnidadeCurto(nome?: string | null): string {
+  const limpo = (nome ?? "").trim();
+  if (!limpo) return "—";
+  if (limpo.length <= 22) return limpo;
+  const sigla = limpo
+    .split(/\s+/)
+    .filter((p) => !PALAVRAS_IGNORADAS.has(p.toLowerCase()))
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
+  return sigla.length >= 2 ? sigla : limpo;
 }
 
 /** Retorna só o primeiro e o último nome (ex.: "Mary … Miné" → "Mary Miné"). */
@@ -542,7 +564,7 @@ export async function fetchCursosAdmin(): Promise<CursoRow[]> {
   const hoje = hojeISO();
   const { data, error } = await supabase
     .from("cursos")
-    .select("*, parceiros(id, nome)")
+    .select("*, parceiros(id, nome), unidades:unidade_id(id, nome)")
     .eq("is_cancelado", false)
     .eq("is_planejado", false)
     .is("percurso_id", null)
