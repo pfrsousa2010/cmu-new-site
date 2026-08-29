@@ -98,7 +98,7 @@ entra na **lista de espera** — o SGE continua aceitando.
 - **Visão geral** — stats derivados do Supabase + atividade recente + ações rápidas.
 - **Eventos e fotos** — CRUD de eventos; fotos vão para o bucket `site-eventos`.
 - **Editais e arquivos** — upload para o bucket `site-arquivos` + registro na tabela.
-- **Carrossel da Home** — fotos do topo da página inicial: upload (arrastar ou
+- **Fotos da página inicial** — fotos do carrossel do topo da Home: upload (arrastar ou
   escolher), ordem, publicar/ocultar e remover. Bucket `site-hero`. Sem nenhuma
   foto publicada, o site usa as 11 imagens originais de `/public`.
 - **Cursos (SGE)** — lista sincronizada com o SGE; imagem do card (anexar ou Unsplash)

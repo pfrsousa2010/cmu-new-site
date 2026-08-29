@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { nomeCurto } from "@/lib/cursos";
 
 const MENU = [
   { to: "/admin", label: "Visão geral", icone: "⌂", end: true },
   { to: "/admin/eventos", label: "Eventos e fotos", icone: "📅" },
   { to: "/admin/arquivos", label: "Editais e arquivos", icone: "📄" },
   { to: "/admin/cursos", label: "Cursos (SGE)", icone: "🎓" },
-  { to: "/admin/hero", label: "Carrossel da Home", icone: "🖼" },
+  { to: "/admin/hero", label: "Fotos da página inicial", icone: "🖼" },
 ];
 
 function iniciais(nome?: string | null, email?: string | null) {
@@ -74,24 +75,24 @@ export default function AdminLayout() {
               {m.label}
             </NavLink>
           ))}
+        </nav>
+        <div className="mt-auto px-5 pb-3">
           <NavLink
             to="/"
             onClick={() => setOpen(false)}
-            className="mt-2 flex items-center gap-[11px] rounded-[11px] border border-white/10 px-3.5 py-[11px] text-sm font-semibold text-white/65 transition-colors hover:bg-white/[.08] hover:text-white"
+            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white/65 underline underline-offset-2 transition-colors hover:text-white"
           >
-            <span className="text-base" aria-hidden="true">
-              ←
-            </span>
+            <span aria-hidden="true">←</span>
             Voltar ao site
           </NavLink>
-        </nav>
-        <div className="mt-auto flex items-center gap-2.5 border-t border-white/10 px-5 py-[18px]">
+        </div>
+        <div className="flex items-center gap-2.5 border-t border-white/10 px-5 py-[18px]">
           <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-verde text-[13px] font-extrabold">
             {iniciais(profile?.nome, email)}
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-[13px] font-bold" title={email}>
-              {nome}
+              {nome ? nomeCurto(nome) : ""}
             </div>
             <button
               onClick={sair}
