@@ -9,6 +9,8 @@ import {
   fmtDataCurta,
   fmtDataHora,
   sliceHhmm,
+  PERIODOS_LABEL,
+  PERIODO_CLASSES,
   limiteInscricoes,
   vagasRestantes,
   emListaEspera,
@@ -134,7 +136,7 @@ export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {listaEspera ? (
                 <MetaChip label="Inscrições" value={"Lista\nde espera"} />
               ) : limiteInsc != null ? (
@@ -149,12 +151,16 @@ export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps
                 )
               )}
               {carga && <MetaChip label="Carga horária" value={carga} />}
-              {(diasLabel || horarioAulaFmt) && (
-                <MetaChip
-                  label="Dias e horários"
-                  value={[diasLabel, horarioAulaFmt].filter(Boolean).join("\n")}
-                />
-              )}
+              {diasLabel && <MetaChip label="Dias" value={diasLabel} />}
+              {/* O turno fica junto do horário, não dos dias: é o mesmo dado
+                  lido de dois jeitos ("Tarde" e "14:30h às 17:30h"). */}
+              <MetaChip
+                label="Horário"
+                value={[PERIODOS_LABEL[info.periodo], horarioAulaFmt]
+                  .filter(Boolean)
+                  .join("\n")}
+                tom={PERIODO_CLASSES[info.periodo]}
+              />
             </div>
 
             {info.objetivo_curso?.trim() && (
@@ -211,18 +217,22 @@ export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps
             </Section>
           </div>
 
-          <div className="flex shrink-0 flex-wrap justify-end gap-3 border-t border-black/[.07] bg-white px-8 py-4">
+          {/* Lado a lado também no celular: cada botão fica com metade da
+              linha (`flex-1`), porque "Entrar na lista de espera" não cabe ao
+              lado de "Cancelar" no tamanho natural. A partir de sm voltam ao
+              tamanho do conteúdo, alinhados à direita. */}
+          <div className="flex shrink-0 gap-3 border-t border-black/[.07] bg-white px-5 py-4 sm:justify-end sm:px-8">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border-[1.5px] border-black/[.12] bg-white px-6 py-3 font-display text-sm font-extrabold text-ink transition-colors hover:border-azul hover:text-azul"
+              className="flex-1 rounded-full border-[1.5px] border-black/[.12] bg-white px-4 py-3 font-display text-[13.5px] font-extrabold leading-tight text-ink transition-colors hover:border-azul hover:text-azul sm:flex-none sm:px-6 sm:text-sm"
             >
               Cancelar
             </button>
             <button
               type="button"
               onClick={handleInscrever}
-              className="rounded-full bg-verde px-7 py-3 font-display text-sm font-extrabold text-white shadow-[0_3px_10px_rgba(98,179,46,.3)] transition-colors hover:bg-verde-hover"
+              className="flex-1 rounded-full bg-verde px-4 py-3 font-display text-[13.5px] font-extrabold leading-tight text-white shadow-[0_3px_10px_rgba(98,179,46,.3)] transition-colors hover:bg-verde-hover sm:flex-none sm:px-7 sm:text-sm"
             >
               {listaEspera ? "Entrar na lista de espera" : "Inscrever agora!"}
             </button>
@@ -240,13 +250,30 @@ function mapsQuery(u: { nome?: string | null; endereco?: string | null }): strin
   return q || null;
 }
 
-function MetaChip({ label, value }: { label: string; value: string }) {
+function MetaChip({
+  label,
+  value,
+  tom,
+}: {
+  label: string;
+  value: string;
+  /** Fundo + texto do turno; sem isto o chip usa o azul padrão. */
+  tom?: string;
+}) {
   return (
-    <div className="rounded-2xl bg-azul/[.07] px-4 py-3 text-center">
-      <div className="text-[11px] font-bold uppercase tracking-[.04em] text-azul">
+    <div
+      className={`rounded-2xl px-4 py-3 text-center ${tom ?? "bg-azul/[.07]"}`}
+    >
+      {/* Sem baixar a opacidade: a 80% o rótulo de 11px cai para ~3.4:1 sobre
+          o fundo do turno, abaixo do mínimo de 4.5:1. */}
+      <div
+        className={`text-[11px] font-bold uppercase tracking-[.04em] ${tom ? "" : "text-azul"}`}
+      >
         {label}
       </div>
-      <div className="mt-1 whitespace-pre-line text-[20px] font-semibold leading-[1.35] text-ink">
+      <div
+        className={`mt-1 whitespace-pre-line text-[20px] font-semibold leading-[1.35] ${tom ? "" : "text-ink"}`}
+      >
         {value}
       </div>
     </div>

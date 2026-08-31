@@ -29,6 +29,15 @@ export default {
         surface: "#ffffff",
         subtle: "#f0ede8",
         dark: "#26333f",
+        // Período do curso. Cor própria para cada turno porque é o dado que
+        // mais confunde na inscrição — quem se inscreve precisa bater o olho e
+        // ver se é de manhã, tarde ou noite. Os tons de texto são escurecidos
+        // de propósito: sobre o fundo `suave` ficam acima de 4.5:1 (AA).
+        periodo: {
+          manha: { DEFAULT: "#8a5b00", suave: "#fbf0d4" },
+          tarde: { DEFAULT: "#a8480a", suave: "#fbe4d4" },
+          noite: { DEFAULT: "#26537e", suave: "#dde8f4" },
+        },
         // Texto
         ink: {
           DEFAULT: "#2b2622",

@@ -8,13 +8,16 @@ import {
   vagasRestantes,
   limiteInscricoes,
   emListaEspera,
+  abreviarUnidade,
   nomeCurto,
   fmtDataCurta,
   fmtDataHora,
-  DIAS_LABEL,
+  formatDiasCurto,
   PERIODOS_LABEL,
+  PERIODO_CLASSES,
   STATUS_META,
   type CursoRow,
+  type Periodo,
   type StatusCurso,
 } from "@/lib/cursos";
 import { CURSO_FALLBACK } from "@/lib/refImages";
@@ -22,6 +25,18 @@ import LoadingLogo from "@/components/LoadingLogo";
 import InscricaoModal from "@/components/InscricaoModal";
 
 type Filtro = "todos" | Exclude<StatusCurso, "finalizado">;
+
+/** Abaixo disto o card passa a chamar atenção para as vagas que restam. */
+const POUCAS_VAGAS = 10;
+
+/** Valor do filtro de unidade quando nenhuma está selecionada. */
+const TODAS_UNIDADES = "todas";
+
+/** Valor do filtro de turno quando nenhum está selecionado. */
+const TODOS_PERIODOS = "todos";
+
+/** Ordem de exibição do turno — cronológica, não alfabética. */
+const PERIODOS_ORDEM: Periodo[] = ["manha", "tarde", "noite"];
 
 const FILTROS: { key: Filtro; label: string }[] = [
   { key: "todos", label: "Todos" },
@@ -35,6 +50,8 @@ export default function Cursos() {
   const [cursos, setCursos] = useState<CursoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<Filtro>("todos");
+  const [unidade, setUnidade] = useState(TODAS_UNIDADES);
+  const [periodo, setPeriodo] = useState<string>(TODOS_PERIODOS);
   const [busca, setBusca] = useState(() => searchParams.get("busca") ?? "");
   const [cursoInscricaoId, setCursoInscricaoId] = useState<string | null>(null);
 
@@ -62,14 +79,66 @@ export default function Cursos() {
     setSearchParams(next, { replace: true });
   };
 
+  /**
+   * Só as unidades que têm curso na lista — filtrar por uma unidade vazia
+   * nunca ajuda, e a lista de `unidades` do SGE tem entradas fora de uso.
+   */
+  const unidades = useMemo(() => {
+    const nomes = new Set<string>();
+    for (const c of cursos) {
+      const nome = abreviarUnidade(c.unidades?.nome);
+      if (nome) nomes.add(nome);
+    }
+    return [...nomes].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [cursos]);
+
+  /** Só os turnos que têm curso, na ordem manhã -> tarde -> noite. */
+  const periodos = useMemo(() => {
+    const presentes = new Set(cursos.map((c) => c.periodo));
+    return PERIODOS_ORDEM.filter((p) => presentes.has(p));
+  }, [cursos]);
+
+  // A opção escolhida pode sumir da lista quando os cursos recarregam.
+  useEffect(() => {
+    if (unidade !== TODAS_UNIDADES && !unidades.includes(unidade)) {
+      setUnidade(TODAS_UNIDADES);
+    }
+  }, [unidades, unidade]);
+
+  useEffect(() => {
+    if (periodo !== TODOS_PERIODOS && !periodos.includes(periodo as Periodo)) {
+      setPeriodo(TODOS_PERIODOS);
+    }
+  }, [periodos, periodo]);
+
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return cursos.filter((c) => {
       if (filtro !== "todos" && statusDe(c) !== filtro) return false;
+      if (
+        unidade !== TODAS_UNIDADES &&
+        abreviarUnidade(c.unidades?.nome) !== unidade
+      ) {
+        return false;
+      }
+      if (periodo !== TODOS_PERIODOS && c.periodo !== periodo) return false;
       if (termo && !c.titulo.toLowerCase().includes(termo)) return false;
       return true;
     });
-  }, [cursos, filtro, busca]);
+  }, [cursos, filtro, unidade, periodo, busca]);
+
+  const temFiltro =
+    filtro !== "todos" ||
+    unidade !== TODAS_UNIDADES ||
+    periodo !== TODOS_PERIODOS ||
+    busca.trim() !== "";
+
+  const limparFiltros = () => {
+    setFiltro("todos");
+    setUnidade(TODAS_UNIDADES);
+    setPeriodo(TODOS_PERIODOS);
+    atualizarBusca("");
+  };
 
   return (
     <div className="mx-auto max-w-container px-6 pb-20 pt-14">
@@ -102,7 +171,7 @@ export default function Cursos() {
         </div>
       </div>
 
-      <div className="mt-6 flex justify-center">
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <input
           id="busca-curso"
           type="search"
@@ -112,16 +181,67 @@ export default function Cursos() {
           aria-label="Buscar curso pelo nome"
           className="w-full max-w-md rounded-xl border-[1.5px] border-black/[.12] bg-white px-4 py-[13px] text-[15px] text-ink outline-none transition-colors placeholder:text-ink-2/70 focus:border-azul"
         />
+        {periodos.length > 1 && (
+          <select
+            id="filtro-periodo"
+            value={periodo}
+            onChange={(e) => setPeriodo(e.target.value)}
+            aria-label="Filtrar por período"
+            className={[
+              "w-full max-w-md rounded-xl border-[1.5px] border-black/[.12] px-4 py-[13px] text-[15px] font-semibold outline-none transition-colors focus:border-azul sm:w-auto",
+              // Colorir o próprio filtro reforça o código de cor dos cards.
+              periodo === TODOS_PERIODOS
+                ? "bg-white font-normal text-ink"
+                : PERIODO_CLASSES[periodo as Periodo],
+            ].join(" ")}
+          >
+            <option value={TODOS_PERIODOS}>🕐 Todos os períodos</option>
+            {periodos.map((p) => (
+              <option key={p} value={p}>
+                🕐 {PERIODOS_LABEL[p]}
+              </option>
+            ))}
+          </select>
+        )}
+        {unidades.length > 1 && (
+          <select
+            id="filtro-unidade"
+            value={unidade}
+            onChange={(e) => setUnidade(e.target.value)}
+            aria-label="Filtrar por unidade"
+            className="w-full max-w-md rounded-xl border-[1.5px] border-black/[.12] bg-white px-4 py-[13px] text-[15px] text-ink outline-none transition-colors focus:border-azul sm:w-auto"
+          >
+            <option value={TODAS_UNIDADES}>📍 Todas as unidades</option>
+            {unidades.map((u) => (
+              <option key={u} value={u}>
+                📍 {u}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {loading ? (
         <LoadingLogo label="Carregando cursos…" />
       ) : filtrados.length === 0 ? (
-        <p className="mt-8 text-ink-2">
-          {busca.trim()
-            ? `Nenhum curso encontrado para “${busca.trim()}”.`
-            : `Nenhum curso ${filtro !== "todos" ? "nesta categoria" : "disponível"} no momento.`}
-        </p>
+        <div className="mt-8">
+          <p className="m-0 text-ink-2">
+            {busca.trim()
+              ? `Nenhum curso encontrado para “${busca.trim()}”.`
+              : temFiltro
+                ? "Nenhum curso com os filtros escolhidos."
+                : "Nenhum curso disponível no momento."}
+          </p>
+          {temFiltro && (
+            <button
+              type="button"
+              onClick={limparFiltros}
+              className="mt-4 rounded-full border-[1.5px] border-black/[.12] bg-white px-5 py-2.5 text-[13.5px] font-bold text-ink-mid transition-colors hover:border-azul hover:text-azul"
+            >
+              Limpar filtros
+            </button>
+          )}
+        </div>
       ) : (
         <div className="mt-7 grid grid-cols-1 gap-[22px] sm:grid-cols-2 lg:grid-cols-3">
           {filtrados.map((c) => (
@@ -154,12 +274,10 @@ function CursoCard({
   const limite = limiteInscricoes(curso);
   const restantes = vagasRestantes(curso);
   const listaEspera = emListaEspera(curso);
-  const vagasTurma = curso.vagas ?? 0;
+  const unidade = abreviarUnidade(curso.unidades?.nome);
   const temImagem = Boolean(curso.imagem_url);
   const img = curso.imagem_url || CURSO_FALLBACK;
-  const dias = curso.dia_semana
-    .map((d) => DIAS_LABEL[d] ?? d)
-    .join(" · ");
+  const dias = formatDiasCurto(curso.dia_semana);
   const carga =
     curso.carga_horaria_total ?? curso.carga_horaria ?? null;
 
@@ -200,8 +318,11 @@ function CursoCard({
         </div>
         <div className="flex flex-wrap gap-1.5">
           <Chip>📅 {dias}</Chip>
-          <Chip>🕐 {PERIODOS_LABEL[curso.periodo]}</Chip>
+          <Chip className={PERIODO_CLASSES[curso.periodo]}>
+            🕐 {PERIODOS_LABEL[curso.periodo]}
+          </Chip>
           {carga ? <Chip>⏱ {carga}h</Chip> : null}
+          {unidade ? <Chip>📍 {unidade}</Chip> : null}
         </div>
         <div className="text-[13px] text-ink-2">
           De {fmtDataCurta(curso.inicio)} a {fmtDataCurta(curso.fim)}
@@ -221,10 +342,18 @@ function CursoCard({
                 <div className="rounded-lg bg-laranja/[.1] px-2.5 py-1.5 text-[12.5px] font-bold leading-[1.4] text-laranja-hover">
                   Vagas esgotadas — novas inscrições entram na lista de espera
                 </div>
-              ) : limite != null ? (
-                <div className="text-[12.5px] font-bold text-ink-mid">
-                  {restantes} de {limite} inscrições disponíveis
-                </div>
+              ) : limite != null && restantes != null ? (
+                restantes < POUCAS_VAGAS ? (
+                  <div className="rounded-lg bg-laranja/[.1] px-2.5 py-1.5 text-[12.5px] font-bold leading-[1.4] text-laranja-hover">
+                    {restantes === 1
+                      ? "Falta só 1 vaga!"
+                      : `Faltam só ${restantes} vagas!`}
+                  </div>
+                ) : (
+                  <div className="text-[12.5px] font-bold text-ink-mid">
+                    Faltam {restantes} vagas
+                  </div>
+                )
               ) : (
                 <div className="text-[12.5px] font-bold text-ink-mid">
                   Inscrições sem limite de vagas
@@ -238,20 +367,25 @@ function CursoCard({
                 {listaEspera ? "Entrar na lista de espera" : "Inscreva-se"}
               </button>
             </>
-          ) : (
-            <div className="text-[12.5px] font-bold text-ink-mid">
-              {vagasTurma} {vagasTurma === 1 ? "vaga" : "vagas"} na turma
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
 
-function Chip({ children }: { children: React.ReactNode }) {
+function Chip({
+  children,
+  className = "bg-site-bg text-ink-mid",
+}: {
+  children: React.ReactNode;
+  /** Cor de fundo + texto; o padrão é o chip neutro. */
+  className?: string;
+}) {
   return (
-    <span className="rounded-lg bg-site-bg px-2.5 py-1 text-[12.5px] font-semibold text-ink-mid">
+    <span
+      className={`rounded-lg px-2.5 py-1 text-[12.5px] font-semibold ${className}`}
+    >
       {children}
     </span>
   );

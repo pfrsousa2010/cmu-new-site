@@ -16,6 +16,7 @@ import {
   fmtDataCurta,
   fmtDataHora,
   sliceHhmm,
+  unidadeAtendePorContato,
   type CursoDivulgacao,
 } from "@/lib/cursos";
 import {
@@ -422,6 +423,8 @@ export default function Inscricao() {
   const envioBloqueado =
     enviando || inscricaoDuplicada ||
     (preReqObrigatorios.length > 0 && !atendePreRequisitos);
+  // No CPAJ a entrevista é agendada por telefone — ver `unidadeAtendePorContato`.
+  const atendePorContato = unidadeAtendePorContato(curso.localAtendimento.nome);
 
   return (
     <div className="mx-auto max-w-[860px] px-6 pb-20 pt-10">
@@ -456,9 +459,10 @@ export default function Inscricao() {
         )}
 
         <p className="mt-5 rounded-2xl bg-subtle px-5 py-4 text-[14.5px] leading-[1.6] text-ink-2">
-          Esta <b>pré-inscrição não garante a sua vaga</b>. Depois de enviá-la,
-          você precisa comparecer ao atendimento presencial para a entrevista de
-          seleção.
+          Esta <b>pré-inscrição não garante a sua vaga</b>.{" "}
+          {atendePorContato
+            ? "Depois de enviá-la, a equipe entra em contato com você para agendar a entrevista de seleção."
+            : "Depois de enviá-la, você precisa comparecer ao atendimento presencial para a entrevista de seleção."}
         </p>
 
         {listaEspera && (
@@ -1011,6 +1015,11 @@ function Sucesso({
   const hora = sliceHhmm(curso.horario_atendimento_inicio);
   const quando = data && hora ? `${data} às ${hora}` : data || hora;
 
+  // O CPAJ agenda a entrevista por telefone, um a um. Os cursos dele têm
+  // `data_selecao` preenchida do mesmo jeito, então mostrar a data aqui seria
+  // marcar um compromisso que não existe.
+  const porContato = unidadeAtendePorContato(curso.localAtendimento.nome);
+
   return (
     <div className="mx-auto max-w-[720px] px-6 pb-20 pt-14">
       {/* No celular o cartão inteiro fica centrado; a partir de sm volta ao
@@ -1034,24 +1043,37 @@ function Sucesso({
           ) : (
             <>
               Sua inscrição em <b>{curso.titulo.trim()}</b> foi registrada. Ela{" "}
-              <b>não garante a vaga</b>: a seleção acontece no atendimento
-              presencial.
+              <b>não garante a vaga</b>: ainda há uma entrevista de seleção
+              {porContato ? "." : ", no atendimento presencial."}
             </>
           )}
         </p>
 
-        {quando && (
+        {porContato ? (
           <div className="mt-6 rounded-2xl bg-laranja/[.1] px-6 py-5">
             <p className="m-0 text-[13px] font-extrabold uppercase tracking-[.04em] text-laranja">
-              Salve esta data — atendimento presencial
+              Aguarde nosso contato
             </p>
-            <p className="mt-2 text-[19px] font-bold leading-[1.4] text-ink">
-              {quando}
-            </p>
-            <p className="mt-1 text-[14.5px] leading-[1.55] text-ink-2">
-              {formatLocalUnidade(curso.localAtendimento)}
+            <p className="mt-2 text-[15px] font-semibold leading-[1.55] text-ink">
+              Não é preciso comparecer em nenhuma data. A equipe entra em
+              contato pelo telefone que você informou aqui para agendar a
+              entrevista.
             </p>
           </div>
+        ) : (
+          quando && (
+            <div className="mt-6 rounded-2xl bg-laranja/[.1] px-6 py-5">
+              <p className="m-0 text-[13px] font-extrabold uppercase tracking-[.04em] text-laranja">
+                Salve esta data — atendimento presencial
+              </p>
+              <p className="mt-2 text-[19px] font-bold leading-[1.4] text-ink">
+                {quando}
+              </p>
+              <p className="mt-1 text-[14.5px] leading-[1.55] text-ink-2">
+                {formatLocalUnidade(curso.localAtendimento)}
+              </p>
+            </div>
+          )
         )}
 
         {/* Lado a lado sempre: no celular cada botão ocupa metade da linha (os

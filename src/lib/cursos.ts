@@ -114,6 +114,49 @@ export const DIAS_LABEL: Record<string, string> = {
 };
 
 /** Formata dias como no material de divulgação (ex.: "2ª a 6ª feira"). */
+/**
+ * Índice do dia na semana, de segunda a domingo. Aceita as duas grafias que o
+ * SGE grava (`seg` e `segunda`).
+ */
+const DIAS_ORDEM: Record<string, number> = {
+  seg: 0, segunda: 0,
+  ter: 1, terca: 1,
+  qua: 2, quarta: 2,
+  qui: 3, quinta: 3,
+  sex: 4, sexta: 4,
+  sab: 5, sabado: 5,
+  dom: 6, domingo: 6,
+};
+
+/**
+ * Ordena os dias de segunda a domingo. `cursos.dia_semana` é um array sem
+ * ordem garantida — o gestor marca os dias na tela do SGE e eles ficam na
+ * ordem em que foram clicados, o que produz coisas como
+ * "Segunda · Quarta · Terça · Quinta". Dias desconhecidos vão para o fim, na
+ * ordem original, em vez de sumir.
+ */
+export function ordenarDias(dias?: string[] | null): string[] {
+  if (!dias || dias.length === 0) return [];
+  return [...dias].sort((a, b) => {
+    const ia = DIAS_ORDEM[a.toLowerCase()] ?? 99;
+    const ib = DIAS_ORDEM[b.toLowerCase()] ?? 99;
+    return ia - ib;
+  });
+}
+
+/** Dias em forma curta e ordenada, para espaço apertado: "Seg · Ter · Qua". */
+export function formatDiasCurto(dias?: string[] | null): string {
+  return ordenarDias(dias)
+    .map((d) => {
+      const k = d.toLowerCase();
+      const i = DIAS_ORDEM[k];
+      return i == null ? d : DIAS_CURTOS[i];
+    })
+    .join(" · ");
+}
+
+const DIAS_CURTOS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+
 export function formatDiasSemana(dias?: string[] | null): string {
   if (!dias || dias.length === 0) return "";
   const map: Record<string, string> = {
@@ -132,10 +175,17 @@ export function formatDiasSemana(dias?: string[] | null): string {
     sab: "Sábado",
     dom: "Domingo",
   };
-  const uteis = ["segunda", "terca", "quarta", "quinta", "sexta"];
-  const norm = dias.map((d) => d.toLowerCase());
-  if (uteis.every((d) => norm.includes(d))) return "2ª a 6ª feira";
-  const labels = dias.map((d) => map[d] || DIAS_LABEL[d] || d);
+  // "2ª a 6ª feira" só quando são exatamente os cinco dias úteis: com sábado
+  // junto o resumo esconderia um dia de aula. Compara por índice para valer
+  // nas duas grafias (`seg` e `segunda`).
+  const indices = new Set(
+    dias.map((d) => DIAS_ORDEM[d.toLowerCase()]).filter((i) => i != null)
+  );
+  if (indices.size === 5 && [0, 1, 2, 3, 4].every((i) => indices.has(i))) {
+    return "2ª a 6ª feira";
+  }
+  // Ordena antes de rotular: senão sai "4ª e 3ª feira".
+  const labels = ordenarDias(dias).map((d) => map[d] || DIAS_LABEL[d] || d);
   if (labels.length === 1) return `${labels[0]} feira`;
   if (labels.length === 2) return `${labels[0]} e ${labels[1]} feira`;
   return `${labels.slice(0, -1).join(", ")} e ${labels[labels.length - 1]} feira`;
@@ -151,6 +201,50 @@ export function formatLocalUnidade(u?: UnidadeResumo | null): string {
   const endereco = (u?.endereco || "").trim();
   if (nome && endereco) return `${nome} — ${endereco}`;
   return nome || endereco || "Não informado";
+}
+
+/** Marcas de acentuação combinantes, removidas depois de normalize("NFD"). */
+const ACENTOS = /[̀-ͯ]/g;
+
+const normalizarUnidade = (nome: string) =>
+  nome
+    .normalize("NFD")
+    .replace(ACENTOS, "")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
+
+/**
+ * Nome completo da unidade -> sigla. Porte de `unidadeAbreviacao.ts` do SGE:
+ * a tabela `unidades` não tem coluna de sigla, então o mapa vive no código.
+ * O nome pode estar cadastrado com ou sem o "E" antes de JOVENS.
+ */
+const UNIDADE_SIGLAS: Record<string, string> = {
+  "CENTRO DE PROFISSIONALIZACAO DE ADOLESCENTES JOVENS": "CPAJ",
+  "CENTRO DE PROFISSIONALIZACAO DE ADOLESCENTES E JOVENS": "CPAJ",
+};
+
+const SIGLAS = new Map(
+  Object.entries(UNIDADE_SIGLAS).map(([nome, sigla]) => [
+    normalizarUnidade(nome),
+    sigla,
+  ])
+);
+
+/** Sigla da unidade quando houver; senão o nome como está cadastrado. */
+export function abreviarUnidade(nome?: string | null): string {
+  if (!nome) return "";
+  return SIGLAS.get(normalizarUnidade(nome)) ?? nome;
+}
+
+/**
+ * O CPAJ não marca data de atendimento como as outras unidades: os gestores
+ * entram em contato com cada inscrito para agendar a entrevista. A confirmação
+ * da inscrição precisa saber disso para não prometer uma data que não vale —
+ * os cursos do CPAJ têm `data_selecao` preenchida mesmo assim.
+ */
+export function unidadeAtendePorContato(nome?: string | null): boolean {
+  return Boolean(nome) && SIGLAS.get(normalizarUnidade(nome!)) === "CPAJ";
 }
 
 export function formatCargaHoraria(
@@ -172,6 +266,19 @@ export const PERIODOS_LABEL: Record<Periodo, string> = {
   manha: "Manhã",
   tarde: "Tarde",
   noite: "Noite",
+};
+
+/**
+ * Cor de fundo + texto por turno (tokens `periodo.*` do tailwind.config).
+ * O turno é o dado que mais gera engano na inscrição: alguém se inscreve num
+ * curso da noite achando que era de manhã e só descobre no atendimento. Por
+ * isso ele tem cor própria no card e na modal, em vez do cinza dos demais
+ * chips.
+ */
+export const PERIODO_CLASSES: Record<Periodo, string> = {
+  manha: "bg-periodo-manha-suave text-periodo-manha",
+  tarde: "bg-periodo-tarde-suave text-periodo-tarde",
+  noite: "bg-periodo-noite-suave text-periodo-noite",
 };
 
 export const STATUS_META: Record<
@@ -332,7 +439,7 @@ export function fetchCursos(): Promise<CursoRow[]> {
   cursosInflight = (async () => {
     const { data, error } = await supabase
       .from("cursos")
-      .select("*, parceiros(id, nome)")
+      .select("*, parceiros(id, nome), unidades:unidade_id(id, nome)")
       .eq("is_cancelado", false)
       .eq("is_planejado", false)
       .is("percurso_id", null)
