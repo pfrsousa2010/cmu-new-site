@@ -92,10 +92,19 @@ Consequências:
   nela.
 - Tabelas sem prefixo (`cursos`, `inscricoes`, `parceiros`, `unidades`,
   `profiles`, `conteudos`, `curso_conteudos`, `pre_requisitos_atividade`)
-  pertencem ao SGE. Este repositório **lê** todas elas e só **escreve** em
-  `cursos`, e ainda assim apenas em duas colunas: `visivel_site`
-  e `imagem_url`. Não altere outras colunas de `cursos` nem
-  crie/apague linhas do SGE.
+  pertencem ao SGE. Este repositório **lê** todas elas e escreve em apenas duas:
+  em `cursos`, só nas colunas `visivel_site` e `imagem_url`; e em `inscricoes`,
+  só `insert`, pelo formulário de inscrição do site
+  ([src/lib/inscricoes.ts](src/lib/inscricoes.ts)). Não altere outras colunas de
+  `cursos`, não atualize nem apague linhas de `inscricoes`, e não crie/apague
+  linhas das demais tabelas do SGE.
+
+**O formulário de inscrição é uma réplica do formulário público do SGE**
+(`cmu-cursos-planner/src/modules/inscricoes/pages/InscricaoPublica.tsx`). Campos,
+validações, máscaras, listas de opções (`fichaOpcoes.ts`), regra de lista de
+espera e o payload do insert precisam continuar iguais aos de lá — os dois
+alimentam a mesma tabela e a mesma triagem. Ao mexer em um, replique no outro.
+A única diferença deliberada é `origem`: `site_cmu` aqui, `inscricao_publica` lá.
 
 **Colunas opcionais.** `visivel_site` e `imagem_url` foram adicionadas por
 migração e podem não existir em um banco desatualizado. Por isso os tipos as

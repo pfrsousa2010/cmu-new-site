@@ -48,6 +48,12 @@ export interface CursoRow {
 
 export type UnidadeResumo = { nome?: string | null; endereco?: string | null };
 
+/** Pré-requisito da atividade, como o gestor cadastrou no SGE. */
+export interface PreRequisito {
+  descricao: string;
+  obrigatorio: boolean;
+}
+
 /** Dados do material de divulgação (modal de inscrição). */
 export interface CursoDivulgacao {
   id: string;
@@ -69,8 +75,10 @@ export interface CursoDivulgacao {
   horario_atendimento_inicio: string | null;
   inscricoes_inicio: string | null;
   inscricoes_fim: string | null;
+  /** Curso aceita menor de 18 — libera a seção de responsável no formulário. */
+  aceita_menores_18: boolean;
   conteudos: string[];
-  criterios: string[];
+  criterios: PreRequisito[];
   localAula: UnidadeResumo;
   localAtendimento: UnidadeResumo;
 }
@@ -465,7 +473,7 @@ export async function fetchCursoDivulgacao(
       objetivo_curso, carga_horaria_total, carga_horaria_diaria,
       horario_aula_inicio, horario_aula_fim, data_selecao,
       horario_atendimento_inicio, inscricoes_inicio, inscricoes_fim,
-      unidade_id, atendimento_unidade_id,
+      aceita_menores_18, unidade_id, atendimento_unidade_id,
       unidades:unidade_id(nome, endereco)
     `
     )
@@ -501,7 +509,7 @@ export async function fetchCursoDivulgacao(
   ] = await Promise.all([
     supabase
       .from("pre_requisitos_atividade")
-      .select("descricao, ordem")
+      .select("descricao, ordem, is_obrigatorio")
       .eq("curso_id", cursoId)
       .order("ordem", { ascending: true }),
     supabase
@@ -524,9 +532,12 @@ export async function fetchCursoDivulgacao(
     .map((cc) => String(cc?.conteudos?.nome || "").trim())
     .filter(Boolean);
 
-  const criterios = (prereqs ?? [])
-    .map((p: any) => String(p.descricao || "").trim())
-    .filter(Boolean);
+  const criterios: PreRequisito[] = (prereqs ?? [])
+    .map((p: any) => ({
+      descricao: String(p.descricao || "").trim(),
+      obrigatorio: p.is_obrigatorio !== false,
+    }))
+    .filter((p: PreRequisito) => Boolean(p.descricao));
 
   return {
     id: row.id,
@@ -547,6 +558,7 @@ export async function fetchCursoDivulgacao(
     horario_atendimento_inicio: row.horario_atendimento_inicio ?? null,
     inscricoes_inicio: row.inscricoes_inicio ?? null,
     inscricoes_fim: row.inscricoes_fim ?? null,
+    aceita_menores_18: row.aceita_menores_18 !== false,
     conteudos,
     criterios,
     localAula: unidadeAula,

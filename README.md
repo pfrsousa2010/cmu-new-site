@@ -94,6 +94,13 @@ inscrições configurado no SGE), não de `vagas` (tamanho da turma). Quando os
 inscritos atingem esse teto, o card e a modal passam a avisar que a inscrição
 entra na **lista de espera** — o SGE continua aceitando.
 
+A inscrição acontece **no próprio site**, em `/cursos/:id/inscricao` (antes o
+botão abria o formulário do SGE em outra aba). A inscrição cai na mesma tabela
+`inscricoes` do SGE, com origem **Site CMU** — o gestor consegue separar quem
+veio pelo site de quem veio pelo link público. Atenção: no SGE só inscrições de
+origem "Manual" podem ser excluídas, então uma inscrição de teste feita pelo
+site não sai pela tela do gestor.
+
 ### Painel (`/admin`)
 - **Visão geral** — stats derivados do Supabase + atividade recente + ações rápidas.
 - **Eventos e fotos** — CRUD de eventos; fotos vão para o bucket `site-eventos`.

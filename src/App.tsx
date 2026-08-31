@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Sobre from "./pages/Sobre";
 import Projetos from "./pages/Projetos";
 import Cursos from "./pages/Cursos";
+import Inscricao from "./pages/Inscricao";
 import Eventos from "./pages/Eventos";
 import Parceiros from "./pages/Parceiros";
 import Editais from "./pages/Editais";
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="sobre" element={<Sobre />} />
             <Route path="projetos" element={<Projetos />} />
             <Route path="cursos" element={<Cursos />} />
+            <Route path="cursos/:cursoId/inscricao" element={<Inscricao />} />
             <Route path="eventos" element={<Eventos />} />
             <Route path="parceiros" element={<Parceiros />} />
             <Route path="editais" element={<Editais />} />

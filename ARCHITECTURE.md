@@ -168,7 +168,8 @@ Daí toda a nomenclatura:
 |---|---|---|
 | Site (criados aqui) | `site_eventos`, `site_evento_fotos`, `site_arquivos`, `site_hero_imagens` | leitura + escrita |
 | SGE (preexistentes) | `cursos` | leitura + escrita restrita a `visivel_site` e `imagem_url` |
-| SGE | `inscricoes`, `parceiros`, `unidades`, `conteudos`, `curso_conteudos`, `pre_requisitos_atividade`, `profiles` | somente leitura |
+| SGE | `inscricoes` | leitura + **insert** (formulário de inscrição do site) |
+| SGE | `parceiros`, `unidades`, `conteudos`, `curso_conteudos`, `pre_requisitos_atividade`, `profiles` | somente leitura |
 | Storage | `site-eventos`, `site-arquivos`, `site-cursos`, `site-hero` | leitura pública, escrita autenticada |
 
 O prefixo `site_`/`site-` existe porque o SGE **já tem uma tabela `eventos`** com
@@ -211,9 +212,23 @@ comportamento ao adicionar colunas novas.
 `useEffect` com flag de cancelamento → filtra por `isVisivel` e `isAtivoNoSite`
 → filtros de status/busca em `useMemo` → cada card usa `statusDe()`,
 `vagasRestantes()`, `imagem_url` (ou `CURSO_FALLBACK`). "Inscreva-se" abre
-`InscricaoModal`, que busca `fetchCursoDivulgacao()` e aponta para
-`https://cursos.clubedasmaesunidas.org.br/inscricao/curso/:id` — a inscrição em
-si acontece no SGE, fora deste app.
+`InscricaoModal` (material de divulgação, via `fetchCursoDivulgacao()`), cujo
+botão leva a `/cursos/:cursoId/inscricao`.
+
+**Inscrição em curso.** `Inscricao.tsx` + `src/lib/inscricoes.ts` gravam direto
+em `inscricoes` com a chave anon (policy `inscricoes_insert_public` do SGE),
+com `origem = 'site_cmu'` — que o SGE exibe como "Site CMU", distinto de "Link"
+(`inscricao_publica`, a página pública do próprio SGE, que continua no ar para
+oficinas, eventos e links já distribuídos).
+
+O formulário é uma **réplica** de
+`cmu-cursos-planner/src/modules/inscricoes/pages/InscricaoPublica.tsx`: mesmos
+campos, mesmas validações e as mesmas três travas em cascata — o CPF válido e
+sem inscrição duplicada libera o formulário; o ViaCEP libera o endereço; a
+declaração de pré-requisitos libera o envio. `status` (`inscrito` vs
+`lista_espera`) é recalculado no envio, não na abertura da tela, porque a última
+vaga pode ser ocupada enquanto o candidato preenche. Mudou a regra em um dos
+repos? Replique no outro.
 
 **Upload de imagem de curso (admin).** `AdminCursos` valida
 (`validarImagemCurso`, máx. 2 MB) → `setCursoImagem()` sobe para `site-cursos` →
@@ -265,6 +280,7 @@ Assumidos e documentados, não descuidos:
 | Nova entidade de dados | migração em `supabase/migrations/` (tabela `site_*` + RLS + bucket se precisar) → módulo em `src/lib/` → só então a UI |
 | Fotos do carrossel da Home | `src/lib/hero.ts` + `src/pages/admin/AdminHero.tsx` |
 | Mudar regra de status/visibilidade de curso | `src/lib/cursos.ts` (`statusDe`, `inscricoesAbertas`, `isVisivel`, `isAtivoNoSite`) |
+| Mexer no formulário de inscrição | `src/lib/inscricoes.ts` + `src/pages/Inscricao.tsx` — e replique no SGE |
 | Ajustar cores, sombras, fontes | `tailwind.config.ts` (não CSS solto) |
 | Autenticação / autorização | `src/hooks/useAuth.tsx` + `src/pages/admin/RequireAuth.tsx` |
 | Config de deploy | `vercel.json`, `public/_redirects` |

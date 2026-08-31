@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import Modal from "@/components/Modal";
 import LoadingLogo from "@/components/LoadingLogo";
 import {
@@ -8,11 +9,11 @@ import {
   fmtDataCurta,
   fmtDataHora,
   sliceHhmm,
-  urlInscricaoPublica,
   limiteInscricoes,
   vagasRestantes,
   emListaEspera,
   type CursoDivulgacao,
+  type PreRequisito,
 } from "@/lib/cursos";
 
 interface InscricaoModalProps {
@@ -21,6 +22,7 @@ interface InscricaoModalProps {
 }
 
 export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps) {
+  const navigate = useNavigate();
   const [info, setInfo] = useState<CursoDivulgacao | null>(null);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
@@ -79,7 +81,7 @@ export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps
 
   const handleInscrever = () => {
     if (!cursoId) return;
-    window.open(urlInscricaoPublica(cursoId), "_blank", "noopener,noreferrer");
+    navigate(`/cursos/${cursoId}/inscricao`);
   };
 
   return (
@@ -168,7 +170,7 @@ export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps
                 <ItemList items={info.conteudos} empty="Não informado" />
               </Section>
               <Section title="Critérios">
-                <ItemList items={info.criterios} empty="Não informado" />
+                <PreRequisitoList itens={info.criterios} />
               </Section>
             </div>
 
@@ -276,6 +278,27 @@ function ItemList({ items, empty }: { items: string[]; empty: string }) {
     <ul className="m-0 list-disc space-y-1.5 pl-5 text-[14.5px] leading-[1.55] text-ink-2">
       {items.map((item) => (
         <li key={item}>{item}</li>
+      ))}
+    </ul>
+  );
+}
+
+/** Critérios do SGE: os obrigatórios ganham selo, como na inscrição do SGE. */
+function PreRequisitoList({ itens }: { itens: PreRequisito[] }) {
+  if (itens.length === 0) {
+    return <p className="m-0 text-[14px] italic text-ink-2">Não informado</p>;
+  }
+  return (
+    <ul className="m-0 list-disc space-y-1.5 pl-5 text-[14.5px] leading-[1.55] text-ink-2">
+      {itens.map((item) => (
+        <li key={item.descricao}>
+          {item.descricao}
+          {item.obrigatorio && (
+            <span className="ml-2 whitespace-nowrap rounded-full bg-laranja/[.12] px-2 py-[2px] align-middle text-[11px] font-bold uppercase tracking-[.03em] text-laranja">
+              Obrigatório
+            </span>
+          )}
+        </li>
       ))}
     </ul>
   );
