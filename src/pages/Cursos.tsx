@@ -146,8 +146,8 @@ export default function Cursos() {
         <div>
           <h1 className="mb-3 font-display text-[42px] font-black">Cursos</h1>
           <p className="m-0 max-w-[560px] text-base leading-[1.6] text-ink-2">
-            Cursos gratuitos de qualificação profissional. Dados sincronizados em
-            tempo real com nosso sistema de gestão.
+            Cursos gratuitos de qualificação profissional. Veja os que estão com
+            inscrição aberta e inscreva-se aqui mesmo, pelo site.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
