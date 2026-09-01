@@ -24,6 +24,7 @@ import AdminEventos from "./pages/admin/AdminEventos";
 import AdminArquivos from "./pages/admin/AdminArquivos";
 import AdminCursos from "./pages/admin/AdminCursos";
 import AdminHero from "./pages/admin/AdminHero";
+import AdminParceiros from "./pages/admin/AdminParceiros";
 
 export default function App() {
   return (
@@ -61,6 +62,7 @@ export default function App() {
             <Route path="arquivos" element={<AdminArquivos />} />
             <Route path="cursos" element={<AdminCursos />} />
             <Route path="hero" element={<AdminHero />} />
+            <Route path="parceiros" element={<AdminParceiros />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

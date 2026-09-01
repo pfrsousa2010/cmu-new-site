@@ -9,6 +9,7 @@ const MENU = [
   { to: "/admin/arquivos", label: "Editais e arquivos", icone: "📄" },
   { to: "/admin/cursos", label: "Cursos (SGE)", icone: "🎓" },
   { to: "/admin/hero", label: "Fotos da página inicial", icone: "🖼" },
+  { to: "/admin/parceiros", label: "Logos dos parceiros", icone: "🤝" },
 ];
 
 function iniciais(nome?: string | null, email?: string | null) {
