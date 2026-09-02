@@ -121,7 +121,7 @@ export default function PublicLayout() {
 
       {/* Footer */}
       <footer className="mt-auto bg-dark text-white">
-        <div className="mx-auto grid max-w-container grid-cols-1 gap-10 px-6 pb-8 pt-[52px] md:grid-cols-[1.4fr_1fr_1fr]">
+        <div className="mx-auto grid max-w-container grid-cols-1 gap-8 px-6 pb-8 pt-10 md:grid-cols-[1.4fr_1fr_1fr] md:gap-10 md:pt-[52px]">
           <div>
             <img
               src="/logo-dark-theme.png"
@@ -210,8 +210,11 @@ export default function PublicLayout() {
             </div>
           </div>
         </div>
+        {/* No celular vira uma coluna com o mesmo respiro dos blocos de cima;
+            a partir de sm volta à linha única distribuída. O padding extra
+            embaixo tira o texto de perto do botão flutuante do WhatsApp. */}
         <div className="border-t border-white/[.12]">
-          <div className="mx-auto flex max-w-container flex-wrap items-center justify-between gap-2 px-6 py-[18px] text-[13px] text-white/55">
+          <div className="mx-auto flex max-w-container flex-col gap-2.5 px-6 pb-24 pt-5 text-[13px] text-white/55 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2 sm:py-[18px]">
             <span>© 2026 Clube das Mães Unidas</span>
             <span>
               Desenvolvido por{" "}
@@ -224,7 +227,19 @@ export default function PublicLayout() {
                 Micro Focus
               </a>
             </span>
-            <span>Termos de uso · Política de Privacidade</span>
+            <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span>Termos de uso · Política de Privacidade</span>
+              <span aria-hidden="true" className="text-white/25">
+                ·
+              </span>
+              {/* Entrada da equipe. Sem sessão, o RequireAuth manda para o login. */}
+              <Link
+                to="/admin"
+                className="text-white/55 underline decoration-white/25 underline-offset-2 transition-colors hover:text-white hover:decoration-white/50"
+              >
+                Área restrita
+              </Link>
+            </span>
           </div>
         </div>
       </footer>
