@@ -136,16 +136,20 @@ export default function Home() {
             mercado de trabalho, por meio de cursos gratuitos e trabalhos de
             inclusão social em Londrina.
           </p>
-          <div className="flex flex-wrap gap-3.5">
+          {/* Lado a lado também no celular: cada um fica com metade da linha
+              (`flex-1`), porque "Conheça a ONG" ao lado de "Ver cursos" não cabe
+              em 375px no tamanho natural. A partir de sm voltam ao tamanho do
+              conteúdo. */}
+          <div className="flex gap-3.5">
             <Link
               to="/cursos"
-              className="rounded-full bg-azul px-[30px] py-3.5 font-display text-base font-extrabold text-white shadow-[0_4px_14px_rgba(46,111,183,.3)] transition-colors hover:bg-azul-hover hover:text-white"
+              className="flex-1 whitespace-nowrap rounded-full bg-azul px-5 py-3.5 text-center font-display text-[15px] font-extrabold text-white shadow-[0_4px_14px_rgba(46,111,183,.3)] transition-colors hover:bg-azul-hover hover:text-white sm:flex-none sm:px-[30px] sm:text-base"
             >
               Ver cursos
             </Link>
             <Link
               to="/sobre"
-              className="rounded-full border-[1.5px] border-black/[.12] bg-white px-[30px] py-3.5 font-display text-base font-extrabold text-ink transition-colors hover:border-azul hover:text-azul"
+              className="flex-1 whitespace-nowrap rounded-full border-[1.5px] border-black/[.12] bg-white px-5 py-3.5 text-center font-display text-[15px] font-extrabold text-ink transition-colors hover:border-azul hover:text-azul sm:flex-none sm:px-[30px] sm:text-base"
             >
               Conheça a ONG
             </Link>
