@@ -1,8 +1,24 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { fetchCursos, isVisivel, statusDe, type CursoRow } from "@/lib/cursos";
 import { fetchEventosAdmin, ehFuturo, type EventoRow } from "@/lib/eventos";
 import { fetchArquivosAdmin, type ArquivoRow } from "@/lib/arquivos";
+
+/** Saudação pelo horário de quem está acessando. */
+function saudacao(agora: Date = new Date()): string {
+  const h = agora.getHours();
+  if (h < 12) return "Bom dia";
+  if (h < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
+/** Primeiro nome, para a saudação não ficar formal demais. */
+function primeiroNome(nome?: string | null): string {
+  const limpo = (nome ?? "").trim();
+  if (!limpo) return "";
+  return limpo.split(/\s+/)[0];
+}
 
 function tempoRelativo(iso: string): string {
   const now = Date.now();
@@ -74,6 +90,10 @@ function DashboardSkeleton() {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { profile } = useAuth();
+  // Sem nome no perfil, a saudação fica só "Bom dia 👋" — melhor que um
+  // "admin" genérico, que era o que estava fixo aqui antes.
+  const nome = primeiroNome(profile?.nome);
   const [cursos, setCursos] = useState<CursoRow[]>([]);
   const [eventos, setEventos] = useState<EventoRow[]>([]);
   const [arquivos, setArquivos] = useState<ArquivoRow[]>([]);
@@ -151,7 +171,8 @@ export default function Dashboard() {
   return (
     <div>
       <h1 className="mb-1 font-display text-[28px] font-black">
-        Bom dia, admin 👋
+        {saudacao()}
+        {nome ? `, ${nome}` : ""} 👋
       </h1>
       <p className="m-0 mb-7 text-[15px] text-ink-2">
         Aqui está o resumo do site.
