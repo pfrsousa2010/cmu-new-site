@@ -1,12 +1,20 @@
 import { useState } from "react";
 
-// Dados bancários e PIX são PLACEHOLDERS — o cliente substituirá pelos reais.
-const CHAVE_PIX = "00.000.000/0001-00";
+/** CNPJ do Clube, que é a chave PIX. Formatado para leitura. */
+const CHAVE_PIX = "78.032.653/0001-40";
+
+/**
+ * O que vai para a área de transferência: só os dígitos. Todo app de banco
+ * aceita a chave nesse formato; com pontuação, alguns recusam.
+ */
+const CHAVE_PIX_COPIA = "78032653000140";
 
 const BANCO = [
   ["Banco", "Caixa Econômica Federal"],
-  ["Agência", "0000"],
-  ["Conta", "00000-0"],
+  ["Agência", "1631"],
+  // Conta da Caixa não funciona sem a operação: 1292 = conta corrente PJ.
+  ["Operação", "1292"],
+  ["Conta", "577550768-8"],
   ["Titular", "Clube das Mães Unidas"],
 ];
 
@@ -15,13 +23,13 @@ export default function Doar() {
 
   async function copiarCnpj() {
     try {
-      await navigator.clipboard.writeText(CHAVE_PIX);
+      await navigator.clipboard.writeText(CHAVE_PIX_COPIA);
       setCopiado(true);
       window.setTimeout(() => setCopiado(false), 2000);
     } catch {
       // Fallback para ambientes sem clipboard API
       const el = document.createElement("textarea");
-      el.value = CHAVE_PIX;
+      el.value = CHAVE_PIX_COPIA;
       el.setAttribute("readonly", "");
       el.style.position = "absolute";
       el.style.left = "-9999px";
@@ -55,9 +63,13 @@ export default function Doar() {
         <div className="rounded-card border-t-[6px] border-t-verde bg-white p-[30px]">
           <div className="mb-4 font-display text-[22px] font-extrabold">PIX</div>
           <div className="mb-4 rounded-2xl bg-site-bg p-[18px] text-center">
-            <div className="mx-auto mb-3 flex h-[140px] w-[140px] items-center justify-center rounded-xl bg-[repeating-linear-gradient(45deg,#e8e4dd,#e8e4dd_5px,#faf8f5_5px,#faf8f5_10px)] font-mono text-[11px] text-ink-3">
-              QR code PIX
-            </div>
+            <img
+              src="/pix-qrcode.png"
+              alt="QR code do PIX do Clube das Mães Unidas"
+              width={350}
+              height={350}
+              className="mx-auto mb-3 h-[180px] w-[180px] rounded-xl bg-white p-2"
+            />
             <div className="text-[13px] text-ink-2">Chave PIX (CNPJ)</div>
             <div className="mt-1 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
               <div className="font-mono text-base font-bold">{CHAVE_PIX}</div>

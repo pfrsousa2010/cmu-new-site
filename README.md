@@ -77,7 +77,7 @@ de escrita (conforme o handoff).
 
 ### Site público (`/`)
 Home, Sobre nós, Projetos, **Cursos** (dados ao vivo da tabela `cursos`),
-Eventos, Parceiros, Editais, Transparência, Doar (PIX/banco — placeholders) e
+Eventos, Parceiros (logos vindos do painel), Editais, Transparência, Doar e
 Contato (formulário com estado de sucesso; envio real é TODO — sugerido edge
 function/serviço de e-mail).
 
@@ -113,11 +113,12 @@ site não sai pela tela do gestor.
   controlada aqui: vem da janela configurada no próprio SGE.
 
 ## Placeholders a substituir pelo cliente
-- QR code / chave PIX e dados bancários (`src/pages/Doar.tsx`).
-- Logos dos parceiros (`src/pages/Parceiros.tsx`).
 - Fotos de referência do Wix (`src/lib/refImages.ts`) — baixar e re-hospedar no
   Storage.
 - Envio do formulário de contato.
+
+PIX, dados bancários (`src/pages/Doar.tsx`) e logos dos parceiros já são os
+reais. Os logos são gerenciados pelo painel, em **Logos dos parceiros**.
 
 ## Build / deploy
 

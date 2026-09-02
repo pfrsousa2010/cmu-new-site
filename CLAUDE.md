@@ -150,8 +150,9 @@ configure o fallback.
 
 - Formulário de contato não envia nada — só mostra estado de sucesso
   ([src/pages/Contato.tsx:42](src/pages/Contato.tsx:42)).
-- PIX/dados bancários em [src/pages/Doar.tsx](src/pages/Doar.tsx) e logos em
-  [src/pages/Parceiros.tsx](src/pages/Parceiros.tsx) são placeholders do cliente.
+- PIX, dados bancários e logos dos parceiros já são os reais. O QR do PIX é
+  [public/pix-qrcode.png](public/pix-qrcode.png), extraído do PDF do banco; se
+  a chave mudar, o QR precisa ser trocado junto — um não valida o outro.
 - [src/lib/refImages.ts](src/lib/refImages.ts) faz hotlink de imagens do Wix
   antigo; precisam ser re-hospedadas no Storage antes do go-live.
 - Unsplash (`VITE_UNSPLASH_ACCESS_KEY`) é opcional; sem a chave o Admin → Cursos
