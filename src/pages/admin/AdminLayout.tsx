@@ -115,8 +115,10 @@ export default function AdminLayout() {
 
       {/* Conteúdo */}
       <div className="min-w-0 flex-1">
-        {/* Topbar mobile */}
-        <div className="flex items-center gap-3 border-b border-black/[.06] bg-white px-4 py-3 md:hidden">
+        {/* Topbar mobile — fixa no topo para o menu ficar sempre ao alcance nas
+            listas longas. z-20 de propósito: abaixo do overlay (z-30) e da
+            sidebar (z-40), senão apareceria por cima do escurecido. */}
+        <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/[.06] bg-white px-4 py-3 md:hidden">
           <button
             aria-label="Menu"
             onClick={() => setOpen(true)}
