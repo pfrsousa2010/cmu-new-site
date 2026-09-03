@@ -25,6 +25,7 @@ import AdminArquivos from "./pages/admin/AdminArquivos";
 import AdminCursos from "./pages/admin/AdminCursos";
 import AdminHero from "./pages/admin/AdminHero";
 import AdminParceiros from "./pages/admin/AdminParceiros";
+import AdminDepoimentos from "./pages/admin/AdminDepoimentos";
 
 export default function App() {
   return (
@@ -63,6 +64,7 @@ export default function App() {
             <Route path="cursos" element={<AdminCursos />} />
             <Route path="hero" element={<AdminHero />} />
             <Route path="parceiros" element={<AdminParceiros />} />
+            <Route path="depoimentos" element={<AdminDepoimentos />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
