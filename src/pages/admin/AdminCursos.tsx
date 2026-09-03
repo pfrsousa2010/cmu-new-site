@@ -356,13 +356,17 @@ export default function AdminCursos() {
                 onClick={() => setSoSemFoto((v) => !v)}
                 className={[
                   "rounded-full border-[1.5px] px-[16px] py-2 text-[13px] font-bold transition-colors",
+                  // Laranja da marca só no contorno e no fundo: em texto ele
+                  // fica em 2,9:1, abaixo do mínimo legível.
                   soSemFoto
-                    ? "border-laranja bg-laranja text-white"
-                    : "border-laranja/40 bg-laranja/[.08] text-laranja hover:border-laranja",
+                    ? "border-laranja-dark bg-laranja-dark text-white"
+                    : "border-laranja/40 bg-laranja/[.08] text-laranja-dark hover:border-laranja",
                 ].join(" ")}
               >
                 Sem foto
-                <span className={soSemFoto ? "text-white/70" : "text-laranja/70"}>
+                {/* Sem a opacidade dos chips vizinhos: sobre laranja ela
+                    derrubaria o número para 3,1:1. */}
+                <span className={soSemFoto ? "text-white" : "text-laranja-dark"}>
                   {" "}
                   ({semFotoNoFiltro})
                 </span>

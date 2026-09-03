@@ -18,6 +18,10 @@ export default {
         laranja: {
           DEFAULT: "#ee7623",
           hover: "#d96613",
+          // Para texto: o laranja da marca dá 2,9:1 sobre branco, abaixo do
+          // mínimo até para título grande. Este tom passa de 4,5:1 sobre
+          // branco e sobre os fundos laranja claros do painel.
+          dark: "#a8480a",
         },
         vermelho: {
           DEFAULT: "#d13a41",

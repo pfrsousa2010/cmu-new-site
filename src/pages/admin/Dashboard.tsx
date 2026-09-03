@@ -206,23 +206,47 @@ export default function Dashboard() {
 
       <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {stats.map((s) => {
-          const classe = `rounded-2xl border-t-4 ${s.border} bg-white px-[22px] py-5 text-left`;
+          // Em destaque o card sai do branco dos demais: fundo laranja claro,
+          // contorno e rótulo na cor. Contra quatro cards brancos ele é a
+          // primeira coisa que o olho encontra, sem precisar de animação —
+          // a pendência dura semanas e um card piscando viraria ruído.
+          const classe = [
+            "rounded-2xl border-t-4 px-[22px] py-5 text-left",
+            s.border,
+            s.destaque
+              ? "bg-laranja/[.09] ring-1 ring-inset ring-laranja/30"
+              : "bg-white",
+          ].join(" ");
           const conteudo = (
             <>
-              <div className="text-[13px] font-bold text-ink-2">{s.label}</div>
+              <div
+                className={`text-[13px] font-bold ${
+                  s.destaque ? "text-laranja-dark" : "text-ink-2"
+                }`}
+              >
+                {s.label}
+              </div>
               <div
                 className={`mt-1 font-display text-3xl font-black ${
-                  s.destaque ? "text-laranja" : ""
+                  s.destaque ? "text-laranja-dark" : ""
                 }`}
               >
                 {s.valor}
               </div>
               <div
                 className={`mt-0.5 text-[12.5px] ${
-                  s.destaque ? "font-bold text-laranja" : "text-ink-2"
+                  s.destaque ? "font-bold text-laranja-dark" : "text-ink-2"
                 }`}
               >
                 {s.sub}
+                {s.href && (
+                  <span
+                    aria-hidden="true"
+                    className="ml-1 inline-block transition-transform group-hover:translate-x-0.5"
+                  >
+                    →
+                  </span>
+                )}
               </div>
             </>
           );
@@ -231,7 +255,9 @@ export default function Dashboard() {
               key={s.label}
               type="button"
               onClick={() => navigate(s.href!)}
-              className={`${classe} transition-shadow hover:shadow-card-hover`}
+              className={`group ${classe} transition-shadow hover:shadow-card-hover ${
+                s.destaque ? "hover:bg-laranja/[.15]" : ""
+              }`}
             >
               {conteudo}
             </button>
