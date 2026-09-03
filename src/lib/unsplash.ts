@@ -16,6 +16,30 @@ export function unsplashConfigured(): boolean {
   return Boolean(UNSPLASH_KEY?.trim());
 }
 
+/** Cota do plano demo do Unsplash, por chave. Cada busca gasta uma. */
+const LIMITE_HORA = 50;
+
+/**
+ * Traduz a resposta de erro do Unsplash. Sem isso o 403 mais comum — a cota
+ * horária estourada — chega ao admin como um número solto, e ele não tem como
+ * saber que basta esperar nem que a aba Anexar continua funcionando.
+ */
+function erroUnsplash(status: number, corpo: string): Error {
+  const texto = corpo.trim();
+  if (status === 403 && /rate limit/i.test(texto)) {
+    return new Error(
+      `Limite do Unsplash atingido (${LIMITE_HORA} buscas por hora). ` +
+        "Espere a virada da hora ou use a aba Anexar para subir uma imagem do computador."
+    );
+  }
+  if (status === 401) {
+    return new Error(
+      "Chave do Unsplash recusada. Confira VITE_UNSPLASH_ACCESS_KEY no .env."
+    );
+  }
+  return new Error(`Unsplash ${status}: ${texto || "erro desconhecido"}`);
+}
+
 export async function buscarFotosUnsplash(
   termo: string,
   page = 1
@@ -37,8 +61,7 @@ export async function buscarFotosUnsplash(
     headers: { Authorization: `Client-ID ${key}` },
   });
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Unsplash ${res.status}: ${body || res.statusText}`);
+    throw erroUnsplash(res.status, await res.text());
   }
 
   const data = (await res.json()) as {
@@ -81,7 +104,7 @@ export async function baixarFotoUnsplash(
     headers: { Authorization: `Client-ID ${key}` },
   });
   if (!track.ok) {
-    throw new Error(`Falha ao registrar download Unsplash (${track.status})`);
+    throw erroUnsplash(track.status, await track.text());
   }
   const trackJson = (await track.json()) as { url?: string };
   let imageUrl = trackJson.url;
