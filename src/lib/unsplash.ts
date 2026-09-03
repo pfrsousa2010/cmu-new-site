@@ -16,28 +16,33 @@ export function unsplashConfigured(): boolean {
   return Boolean(UNSPLASH_KEY?.trim());
 }
 
-/** Cota do plano demo do Unsplash, por chave. Cada busca gasta uma. */
-const LIMITE_HORA = 50;
-
 /**
  * Traduz a resposta de erro do Unsplash. Sem isso o 403 mais comum — a cota
  * horária estourada — chega ao admin como um número solto, e ele não tem como
  * saber que basta esperar nem que a aba Anexar continua funcionando.
  */
-function erroUnsplash(status: number, corpo: string): Error {
+function erroUnsplash(res: Response, corpo: string): Error {
   const texto = corpo.trim();
-  if (status === 403 && /rate limit/i.test(texto)) {
+  if (res.status === 403 && /rate limit/i.test(texto)) {
+    // O teto vem no cabeçalho da própria resposta: 50/h no plano Demo, mais
+    // no Production. Escrever o número aqui envelheceria a mensagem no dia em
+    // que o app do Unsplash mudar de plano.
+    const limite = Number(res.headers.get("x-ratelimit-limit"));
+    const quanto = Number.isFinite(limite) && limite > 0
+      ? `${limite.toLocaleString("pt-BR")} por hora`
+      : "por hora";
     return new Error(
-      `Limite do Unsplash atingido (${LIMITE_HORA} buscas por hora). ` +
-        "Espere a virada da hora ou use a aba Anexar para subir uma imagem do computador."
+      `Limite de buscas do Unsplash atingido (${quanto}). ` +
+        "Tente buscar a imagem de novo daqui a uma hora, ou use a aba Anexar " +
+        "para subir uma imagem do computador."
     );
   }
-  if (status === 401) {
+  if (res.status === 401) {
     return new Error(
       "Chave do Unsplash recusada. Confira VITE_UNSPLASH_ACCESS_KEY no .env."
     );
   }
-  return new Error(`Unsplash ${status}: ${texto || "erro desconhecido"}`);
+  return new Error(`Unsplash ${res.status}: ${texto || "erro desconhecido"}`);
 }
 
 export async function buscarFotosUnsplash(
@@ -61,7 +66,7 @@ export async function buscarFotosUnsplash(
     headers: { Authorization: `Client-ID ${key}` },
   });
   if (!res.ok) {
-    throw erroUnsplash(res.status, await res.text());
+    throw erroUnsplash(res, await res.text());
   }
 
   const data = (await res.json()) as {
@@ -104,7 +109,7 @@ export async function baixarFotoUnsplash(
     headers: { Authorization: `Client-ID ${key}` },
   });
   if (!track.ok) {
-    throw erroUnsplash(track.status, await track.text());
+    throw erroUnsplash(track, await track.text());
   }
   const trackJson = (await track.json()) as { url?: string };
   let imageUrl = trackJson.url;

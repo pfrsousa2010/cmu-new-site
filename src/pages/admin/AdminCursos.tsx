@@ -722,6 +722,21 @@ export default function AdminCursos() {
                 {buscandoUnsplash ? "Buscando…" : "Buscar"}
               </button>
             </div>
+            {/* Fica fora do bloco "sem resultados": a origem das fotos precisa
+                estar visível também depois da busca, não só antes dela. */}
+            <p className="m-0 mb-3 text-[12.5px] leading-[1.5] text-ink-2">
+              As fotos vêm do{" "}
+              <a
+                href="https://unsplash.com/?utm_source=cmu_site&utm_medium=referral"
+                target="_blank"
+                rel="noreferrer"
+                className="font-bold text-azul hover:underline"
+              >
+                Unsplash
+              </a>
+              , banco de imagens gratuitas e de uso livre. Busque por um tema
+              relacionado ao curso e clique na foto desejada.
+            </p>
             {enviandoImagem && (
               <p className="mb-3 text-[13px] font-semibold text-azul">
                 Baixando e salvando a imagem…
@@ -766,11 +781,6 @@ export default function AdminCursos() {
                 </button>
               ))}
             </div>
-            {!fotosUnsplash.length && !buscandoUnsplash && (
-              <p className="m-0 mt-2 text-[13px] text-ink-3">
-                Busque por um tema relacionado ao curso e clique na foto desejada.
-              </p>
-            )}
           </div>
         )}
 
