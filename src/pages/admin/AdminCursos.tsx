@@ -144,7 +144,10 @@ export default function AdminCursos() {
   const abrirModalImagem = (c: CursoRow) => {
     setCursoImagemState(c);
     setAbaImagem("anexar");
-    setTermoUnsplash(c.titulo.split(/\s+/).slice(0, 3).join(" "));
+    // Título inteiro: cortar em três palavras deixava "Doces á Base" no lugar
+    // de "Doces á Base de Chocolate" e a busca perdia justamente o assunto.
+    // Só normaliza os espaços, que vêm irregulares do SGE.
+    setTermoUnsplash(c.titulo.trim().replace(/\s+/g, " "));
     setFotosUnsplash([]);
   };
 
