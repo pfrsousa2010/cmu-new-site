@@ -1,6 +1,6 @@
 {
   "name": "Clube das Mães Unidas · Admin",
-  "short_name": "CMU Admin",
+  "short_name": "CMU Site Admin",
   "description": "Painel para gerenciar eventos, editais, cursos e fotos do site do Clube das Mães Unidas.",
   "lang": "pt-BR",
   "start_url": "/admin/",

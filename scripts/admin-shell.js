@@ -54,7 +54,7 @@ const montarHtml = (template) => {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-    <title>CMU Admin</title>
+    <title>CMU Site Admin</title>
     <meta name="robots" content="noindex, nofollow" />
 
     <link rel="manifest" href="/admin-manifest.json" />
@@ -64,7 +64,7 @@ const montarHtml = (template) => {
     <meta name="theme-color" content="#26333f" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-    <meta name="apple-mobile-web-app-title" content="CMU Admin" />
+    <meta name="apple-mobile-web-app-title" content="CMU Site Admin" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
