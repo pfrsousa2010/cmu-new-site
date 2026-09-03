@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchCursos, isVisivel, statusDe, type CursoRow } from "@/lib/cursos";
+import {
+  fetchCursos,
+  isVisivel,
+  semImagem,
+  statusDe,
+  type CursoRow,
+} from "@/lib/cursos";
 import { fetchEventosAdmin, ehFuturo, type EventoRow } from "@/lib/eventos";
 import { fetchArquivosAdmin, type ArquivoRow } from "@/lib/arquivos";
 
@@ -48,8 +54,8 @@ function DashboardSkeleton() {
       <Skeleton className="mb-2 h-8 w-56" />
       <Skeleton className="mb-7 h-4 w-48" />
 
-      <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
             className="rounded-2xl border-t-4 border-t-black/[.08] bg-white px-[22px] py-5"
@@ -123,13 +129,33 @@ export default function Dashboard() {
     (c) => statusDe(c) === "inscricoes" && !c.is_cancelado
   ).length;
   const proximos = eventos.filter((e) => ehFuturo(e.data)).length;
+  const semFoto = cursos.filter(semImagem).length;
 
-  const stats = [
+  const stats: {
+    label: string;
+    valor: number;
+    sub: string;
+    border: string;
+    /** Quando presente, o card vira botão e leva para essa rota. */
+    href?: string;
+    destaque?: boolean;
+  }[] = [
     {
       label: "Cursos visíveis no site",
       valor: visiveis,
       sub: `de ${cursos.length} no SGE - CMU`,
       border: "border-t-verde",
+    },
+    {
+      // Fica ao lado do total de cursos porque é uma pendência sobre eles, não
+      // um número de acompanhamento: enquanto for maior que zero há card no
+      // site mostrando a logo no lugar da foto do curso.
+      label: "Cursos sem foto",
+      valor: semFoto,
+      sub: semFoto > 0 ? "clique para completar" : "todos com imagem própria",
+      border: "border-t-laranja",
+      href: semFoto > 0 ? "/admin/cursos?semFoto=1" : undefined,
+      destaque: semFoto > 0,
     },
     {
       label: "Inscrições abertas",
@@ -178,17 +204,43 @@ export default function Dashboard() {
         Aqui está o resumo do site.
       </p>
 
-      <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((s) => (
-          <div
-            key={s.label}
-            className={`rounded-2xl border-t-4 ${s.border} bg-white px-[22px] py-5`}
-          >
-            <div className="text-[13px] font-bold text-ink-2">{s.label}</div>
-            <div className="mt-1 font-display text-3xl font-black">{s.valor}</div>
-            <div className="mt-0.5 text-[12.5px] text-ink-2">{s.sub}</div>
-          </div>
-        ))}
+      <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {stats.map((s) => {
+          const classe = `rounded-2xl border-t-4 ${s.border} bg-white px-[22px] py-5 text-left`;
+          const conteudo = (
+            <>
+              <div className="text-[13px] font-bold text-ink-2">{s.label}</div>
+              <div
+                className={`mt-1 font-display text-3xl font-black ${
+                  s.destaque ? "text-laranja" : ""
+                }`}
+              >
+                {s.valor}
+              </div>
+              <div
+                className={`mt-0.5 text-[12.5px] ${
+                  s.destaque ? "font-bold text-laranja" : "text-ink-2"
+                }`}
+              >
+                {s.sub}
+              </div>
+            </>
+          );
+          return s.href ? (
+            <button
+              key={s.label}
+              type="button"
+              onClick={() => navigate(s.href!)}
+              className={`${classe} transition-shadow hover:shadow-card-hover`}
+            >
+              {conteudo}
+            </button>
+          ) : (
+            <div key={s.label} className={classe}>
+              {conteudo}
+            </div>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.4fr_1fr]">

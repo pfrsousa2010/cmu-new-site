@@ -493,6 +493,14 @@ export function isVisivel(c: CursoRow): boolean {
   return c.visivel_site !== false;
 }
 
+/**
+ * Curso sem imagem própria — o card do site cai na logo CMU.
+ * String vazia conta como ausente: o card renderiza o fallback do mesmo jeito.
+ */
+export function semImagem(c: Pick<CursoRow, "imagem_url">): boolean {
+  return !c.imagem_url || c.imagem_url.trim() === "";
+}
+
 /** Diferença em dias entre duas datas YYYY-MM-DD (a - b). */
 function diffDiasISO(a: string, b: string): number {
   const da = new Date(`${a}T12:00:00`);

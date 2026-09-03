@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Modal from "@/components/Modal";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
@@ -10,6 +11,7 @@ import {
   removerCursoImagem,
   validarImagemCurso,
   isVisivel,
+  semImagem,
   nomeCurto,
   nomeUnidadeCurto,
   limiteInscricoes,
@@ -41,11 +43,14 @@ const FILTROS: { key: Filtro; label: string }[] = [
 
 export default function AdminCursos() {
   const { toast } = useToast();
+  const [params, setParams] = useSearchParams();
   const [cursos, setCursos] = useState<CursoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<Record<string, boolean>>({});
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("todos");
+  /** Recorte independente do status: cruza com qualquer um dos filtros acima. */
+  const [soSemFoto, setSoSemFoto] = useState(false);
   const [confirmarRemocao, setConfirmarRemocao] = useState<CursoRow | null>(
     null
   );
@@ -68,29 +73,65 @@ export default function AdminCursos() {
     });
   }, []);
 
+  // Entrada pelo card "Cursos sem foto" da visão geral. O parâmetro é
+  // consumido e apagado: daqui em diante quem manda é o botão da tela.
+  useEffect(() => {
+    if (params.get("semFoto") === "1") {
+      setSoSemFoto(true);
+      params.delete("semFoto");
+      setParams(params, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Base dos chips de status: já recortada por "só sem foto", quando ligado. */
+  const base = useMemo(
+    () => (soSemFoto ? cursos.filter(semImagem) : cursos),
+    [cursos, soSemFoto]
+  );
+
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
-    return cursos.filter((c) => {
+    return base.filter((c) => {
       if (filtro !== "todos" && statusDe(c) !== filtro) return false;
       if (termo && !c.titulo.toLowerCase().includes(termo)) return false;
       return true;
     });
-  }, [cursos, busca, filtro]);
+  }, [base, busca, filtro]);
 
   /** Quantos cursos cada filtro traria, para mostrar no próprio botão. */
   const contagens = useMemo(() => {
     const acc: Record<Filtro, number> = {
-      todos: cursos.length,
+      todos: base.length,
       inscricoes: 0,
       andamento: 0,
       planejado: 0,
     };
-    for (const c of cursos) {
+    for (const c of base) {
       const st = statusDe(c);
       if (st !== "finalizado") acc[st] += 1;
     }
     return acc;
-  }, [cursos]);
+  }, [base]);
+
+  /**
+   * Pendências dentro do status escolhido — é o número que o botão realmente
+   * traz ao ser ligado, e não o total geral. Cada chip mostra o que ele dá.
+   */
+  const semFotoNoFiltro = useMemo(
+    () =>
+      cursos.filter(
+        (c) => semImagem(c) && (filtro === "todos" || statusDe(c) === filtro)
+      ).length,
+    [cursos, filtro]
+  );
+
+  /**
+   * O botão aparece enquanto faltar foto em qualquer curso, mesmo que o status
+   * selecionado no momento esteja completo — sumir ali daria a entender que
+   * não há mais nada a fazer.
+   */
+  const temPendencia = useMemo(() => cursos.some(semImagem), [cursos]);
 
   const fecharModalImagem = () => {
     setCursoImagemState(null);
@@ -300,6 +341,34 @@ export default function AdminCursos() {
               </button>
             );
           })}
+
+          {/* Separado dos demais por ser outro eixo: cruza com o status
+              escolhido, em vez de substituí-lo. Some quando não há pendência. */}
+          {temPendencia && (
+            <>
+              <span
+                aria-hidden="true"
+                className="mx-1 hidden w-px self-stretch bg-black/[.10] sm:block"
+              />
+              <button
+                type="button"
+                aria-pressed={soSemFoto}
+                onClick={() => setSoSemFoto((v) => !v)}
+                className={[
+                  "rounded-full border-[1.5px] px-[16px] py-2 text-[13px] font-bold transition-colors",
+                  soSemFoto
+                    ? "border-laranja bg-laranja text-white"
+                    : "border-laranja/40 bg-laranja/[.08] text-laranja hover:border-laranja",
+                ].join(" ")}
+              >
+                Sem foto
+                <span className={soSemFoto ? "text-white/70" : "text-laranja/70"}>
+                  {" "}
+                  ({semFotoNoFiltro})
+                </span>
+              </button>
+            </>
+          )}
         </div>
       )}
 
@@ -310,8 +379,10 @@ export default function AdminCursos() {
       ) : filtrados.length === 0 ? (
         <p className="text-ink-2">
           {busca.trim()
-            ? `Nenhum curso encontrado para “${busca.trim()}”${filtro !== "todos" ? " nesta categoria" : ""}.`
-            : "Nenhum curso nesta categoria no momento."}
+            ? `Nenhum curso encontrado para “${busca.trim()}”${filtro !== "todos" || soSemFoto ? " com esses filtros" : ""}.`
+            : soSemFoto
+              ? "Nenhum curso sem foto nesta categoria — tudo com imagem por aqui."
+              : "Nenhum curso nesta categoria no momento."}
         </p>
       ) : (
         <>
@@ -322,7 +393,7 @@ export default function AdminCursos() {
               const busy = pending[c.id];
               const st = statusDe(c);
               const meta = STATUS_META[st];
-              const temImg = Boolean(c.imagem_url);
+              const temImg = !semImagem(c);
               const professor = c.professor?.trim()
                 ? nomeCurto(c.professor)
                 : null;
@@ -440,7 +511,7 @@ export default function AdminCursos() {
                 const busy = pending[c.id];
                 const st = statusDe(c);
                 const meta = STATUS_META[st];
-                const temImg = Boolean(c.imagem_url);
+                const temImg = !semImagem(c);
                 return (
                   <div
                     key={c.id}
