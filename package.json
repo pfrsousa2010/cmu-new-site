@@ -6,9 +6,10 @@
   "homepage": "https://clubedasmaesunidas.org.br",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/admin-shell.js",
     "preview": "vite preview",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "icones-pwa": "node scripts/gerar-icones-pwa.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.3",
@@ -23,6 +24,7 @@
     "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",
+    "sharp": "^0.35.4",
     "tailwindcss": "^3.4.11",
     "typescript": "^5.5.3",
     "vite": "^5.4.1"

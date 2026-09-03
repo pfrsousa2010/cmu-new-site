@@ -2,6 +2,8 @@ import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { nomeCurto } from "@/lib/cursos";
+import { estaInstalado } from "@/lib/pwa";
+import BotaoInstalar from "@/components/BotaoInstalar";
 
 const MENU = [
   { to: "/admin", label: "Visão geral", icone: "⌂", end: true },
@@ -29,6 +31,9 @@ export default function AdminLayout() {
   const [open, setOpen] = useState(false);
   const email = profile?.email ?? session?.user.email;
   const nome = profile?.nome?.trim() || email;
+  // Lido no render, sem estado: o modo de exibição é decidido quando a
+  // janela abre e não muda enquanto o painel está aberto.
+  const emApp = estaInstalado();
 
   const sair = async () => {
     await signOut();
@@ -78,15 +83,28 @@ export default function AdminLayout() {
             </NavLink>
           ))}
         </nav>
-        <div className="mt-auto px-5 pb-3">
-          <NavLink
-            to="/"
-            onClick={() => setOpen(false)}
-            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white/65 underline underline-offset-2 transition-colors hover:text-white"
-          >
-            <span aria-hidden="true">←</span>
-            Voltar ao site
-          </NavLink>
+        {/* `empty:p-0` porque no app instalado os dois itens somem: sem isso
+            sobraria uma faixa de 24px acima do bloco do usuário. O `mt-auto`
+            continua empurrando o rodapé para baixo mesmo colapsado. */}
+        <div className="mt-auto grid gap-1 p-3 empty:p-0">
+          <BotaoInstalar aoNavegar={() => setOpen(false)} />
+
+          {/* Instalado, o painel é um app à parte: "Voltar ao site" jogaria
+              para fora do escopo e o Chrome abriria uma barra de navegador
+              por cima. Fora do app, o link continua sendo a saída de quem
+              entrou no painel sem querer. */}
+          {!emApp && (
+            <NavLink
+              to="/"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-[11px] rounded-[11px] px-3.5 py-[11px] text-sm font-semibold text-white/65 transition-colors hover:bg-white/[.08]"
+            >
+              <span aria-hidden="true" className="text-base">
+                ←
+              </span>
+              Voltar ao site
+            </NavLink>
+          )}
         </div>
         <div className="flex items-center gap-2.5 border-t border-white/10 px-5 py-[18px]">
           <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-verde text-[13px] font-extrabold">

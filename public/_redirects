@@ -1,1 +1,9 @@
-/*    /index.html   200
+# O painel tem HTML proprio: e onde moram o manifesto e os icones do
+# aplicativo, que nao podem aparecer nas paginas do site. Primeira regra
+# que casa vence, e arquivo que existe de verdade -- /admin/sw.js,
+# /admin-manifest.json -- e servido antes de qualquer regra.
+#
+# As duas primeiras linhas cobrem /admin e /admin/qualquer-coisa.
+/admin     /admin/index.html  200
+/admin/*   /admin/index.html  200
+/*         /index.html        200

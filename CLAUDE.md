@@ -30,9 +30,12 @@ npm run build
 ```
 
 - `npm run dev` — Vite em `http://localhost:5173`; painel em `/admin`.
-- `npm run build` — `tsc -b && vite build`; é o único gate de qualidade do
-  projeto (não há testes). **Rode antes de considerar uma mudança pronta.**
+- `npm run build` — `tsc -b && vite build && node scripts/admin-shell.js`; é o
+  único gate de qualidade do projeto (não há testes). **Rode antes de
+  considerar uma mudança pronta.**
 - `npm run preview` — serve o `dist/`.
+- `npm run icones-pwa` — regera `public/icons/` a partir do `logo-cmu.png`. Só
+  precisa rodar se a logo mudar; os PNGs são versionados.
 - `npm run lint` — **quebrado**: o script chama `eslint .`, mas ESLint não está
   nas dependências e não há arquivo de config. Não use como verificação; se for
   consertar, instale o ESLint e adicione a config no mesmo commit.
@@ -144,7 +147,32 @@ novos de upload, limpe o objeto órfão quando o insert/update falhar.
 **Fallback SPA.** Rotas do React Router dependem de rewrite para
 `index.html`: [vercel.json](vercel.json) na Vercel,
 [public/_redirects](public/_redirects) na Netlify. Se adicionar outra plataforma,
-configure o fallback.
+configure o fallback. Atenção: `/admin` e `/admin/*` têm rewrite **próprio**,
+antes do catch-all — veja abaixo.
+
+**Só o painel é instalável (PWA).** [scripts/admin-shell.js](scripts/admin-shell.js)
+roda no fim do `npm run build` e gera dois arquivos que não existem no `src/`:
+
+- `dist/admin/index.html` — a mesma aplicação React, mas com o manifesto e as
+  metas do iOS. O painel precisa de um HTML próprio porque o manifesto **não
+  pode** aparecer nas páginas do site: quem visita o site não deve receber
+  convite para instalar nada. Esse HTML é montado do zero, e não filtrado a
+  partir do `index.html` — assim nenhuma meta nova do site vaza para o painel.
+- `dist/admin/sw.js` — o service worker. Mora dentro de `/admin/` de propósito:
+  um service worker só controla o diretório onde está, e é isso que impede o
+  site público de virar parte do aplicativo. A lista de precache e o nome do
+  cache saem dos nomes hasheados do Vite, então não há versão para bumpar na mão.
+
+Consequências ao mexer aqui: `start_url` e `scope` em
+[public/admin-manifest.json](public/admin-manifest.json) precisam **os dois**
+terminar em barra (`/admin/`) — se o `start_url` cair fora do `scope`, o
+navegador descarta o `scope` declarado e adota o diretório do `start_url`, que
+para `/admin` seria `/`, ou seja, o site inteiro. O service worker só é
+registrado em produção e só sob `/admin`
+([src/lib/pwa.ts](src/lib/pwa.ts)); no `npm run dev` não existe nenhum. E o
+painel esconde o link "Voltar ao site" quando está instalado
+([AdminLayout.tsx](src/pages/admin/AdminLayout.tsx)), porque sair do `scope`
+abriria uma barra de navegador por cima do app.
 
 ## Pendências conhecidas (não são bugs)
 
