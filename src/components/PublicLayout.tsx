@@ -9,7 +9,7 @@ const NAV = [
   { to: "/sobre", label: "Sobre nós" },
   { to: "/projetos", label: "Projetos" },
   { to: "/cursos", label: "Cursos" },
-  { to: "/eventos", label: "Eventos" },
+  { to: "/eventos", label: "Eventos e Fotos" },
   { to: "/parceiros", label: "Parceiros" },
   { to: "/editais", label: "Editais" },
   { to: "/transparencia", label: "Transparência" },

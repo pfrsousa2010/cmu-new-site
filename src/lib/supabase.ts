@@ -24,6 +24,7 @@ export const BUCKET_CURSOS = "site-cursos";
 export const BUCKET_HERO = "site-hero";
 export const BUCKET_PARCEIROS = "site-parceiros";
 export const BUCKET_DEPOIMENTOS = "site-depoimentos";
+export const BUCKET_ALBUNS = "site-albuns";
 
 /** URL pública de um objeto no Storage. */
 export function publicUrl(bucket: string, path: string): string {

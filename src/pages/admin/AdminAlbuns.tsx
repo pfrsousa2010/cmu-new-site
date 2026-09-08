@@ -1,0 +1,611 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import Modal from "@/components/Modal";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { useToast } from "@/components/Toast";
+import { publicUrl, BUCKET_ALBUNS } from "@/lib/supabase";
+import {
+  fetchAlbunsAdmin,
+  criarAlbum,
+  atualizarAlbum,
+  removerAlbum,
+  setAlbumPublicado,
+  adicionarFotoAlbum,
+  removerFotoAlbum,
+  capaAlbum,
+  type AlbumRow,
+} from "@/lib/albuns";
+import { fmtDataBR } from "@/lib/eventos";
+
+const inputCls =
+  "w-full rounded-[11px] border-[1.5px] border-black/[.13] px-[14px] py-3 text-[15px] outline-none transition-colors focus:border-azul";
+
+const MAX_FOTOS_ALBUM = 40;
+const MAX_FOTO_BYTES = 2 * 1024 * 1024;
+
+function filtrarImagensParaUpload(
+  files: Iterable<File>,
+  quantidadeAtual: number
+): { validas: File[]; avisos: string[] } {
+  const avisos: string[] = [];
+  const vagas = MAX_FOTOS_ALBUM - quantidadeAtual;
+  if (vagas <= 0) {
+    return {
+      validas: [],
+      avisos: [`Limite de ${MAX_FOTOS_ALBUM} fotos por álbum.`],
+    };
+  }
+
+  const validas: File[] = [];
+  let ignoradasPorLimite = false;
+
+  for (const file of files) {
+    if (validas.length >= vagas) {
+      ignoradasPorLimite = true;
+      break;
+    }
+    if (!file.type.startsWith("image/")) {
+      avisos.push(`"${file.name}" não é uma imagem.`);
+      continue;
+    }
+    if (file.size > MAX_FOTO_BYTES) {
+      avisos.push(`"${file.name}" ultrapassa 2 MB.`);
+      continue;
+    }
+    validas.push(file);
+  }
+
+  if (ignoradasPorLimite) {
+    avisos.push(`Só é possível adicionar mais ${vagas} foto(s).`);
+  }
+
+  return { validas, avisos };
+}
+
+type FotoPendente = {
+  id: string;
+  file: File;
+  preview: string;
+};
+
+export default function AdminAlbuns({
+  pedirNovo = 0,
+}: {
+  /** Incrementa para abrir o modal de novo álbum (botão do cabeçalho). */
+  pedirNovo?: number;
+}) {
+  const { toast } = useToast();
+  const [albuns, setAlbuns] = useState<AlbumRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busca, setBusca] = useState("");
+  const [confirmarRemocao, setConfirmarRemocao] = useState<AlbumRow | null>(
+    null
+  );
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editando, setEditando] = useState<AlbumRow | null>(null);
+  const [titulo, setTitulo] = useState("");
+  const [data, setData] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [pending, setPending] = useState<Record<string, boolean>>({});
+  const [enviandoFotos, setEnviandoFotos] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [fotosPendentes, setFotosPendentes] = useState<FotoPendente[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const ultimoPedidoNovo = useRef(pedirNovo);
+
+  const limparFotosPendentes = () => {
+    setFotosPendentes((prev) => {
+      prev.forEach((f) => URL.revokeObjectURL(f.preview));
+      return [];
+    });
+  };
+
+  const fecharModal = () => {
+    limparFotosPendentes();
+    setDragOver(false);
+    setModalOpen(false);
+  };
+
+  const qtdFotos = editando
+    ? editando.album_fotos?.length ?? 0
+    : fotosPendentes.length;
+
+  const filtrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    if (!termo) return albuns;
+    return albuns.filter((a) => a.titulo.toLowerCase().includes(termo));
+  }, [albuns, busca]);
+
+  const recarregar = async () => {
+    setAlbuns(await fetchAlbunsAdmin());
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    let ativo = true;
+    fetchAlbunsAdmin().then((data) => {
+      if (!ativo) return;
+      setAlbuns(data);
+      setLoading(false);
+    });
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  const abrirNovo = () => {
+    limparFotosPendentes();
+    setEditando(null);
+    setTitulo("");
+    setData("");
+    setDescricao("");
+    setModalOpen(true);
+  };
+
+  useEffect(() => {
+    if (pedirNovo > ultimoPedidoNovo.current) {
+      ultimoPedidoNovo.current = pedirNovo;
+      abrirNovo();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pedirNovo]);
+
+  const abrirEditar = (a: AlbumRow) => {
+    limparFotosPendentes();
+    setEditando(a);
+    setTitulo(a.titulo);
+    setData(a.data ?? "");
+    setDescricao(a.descricao ?? "");
+    setModalOpen(true);
+  };
+
+  const salvar = async () => {
+    if (!titulo.trim()) {
+      toast("Dê um título ao álbum");
+      return;
+    }
+    if (data && !/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      toast("Informe uma data válida");
+      return;
+    }
+    setSalvando(true);
+    try {
+      const input = {
+        titulo: titulo.trim(),
+        descricao: descricao.trim() || null,
+        data: data || null,
+        publicado: editando?.publicado ?? false,
+      };
+      if (editando) {
+        await atualizarAlbum(editando.id, input);
+      } else {
+        const albumId = await criarAlbum(input);
+        if (fotosPendentes.length) {
+          await Promise.all(
+            fotosPendentes.map((f, i) =>
+              adicionarFotoAlbum(albumId, f.file, i)
+            )
+          );
+        }
+        limparFotosPendentes();
+      }
+      await recarregar();
+      fecharModal();
+      toast("Álbum salvo");
+    } catch (err) {
+      toast("Erro ao salvar álbum");
+      console.error(err);
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const toggleVis = async (a: AlbumRow) => {
+    const novo = !a.publicado;
+    setPending((p) => ({ ...p, [a.id]: true }));
+    setAlbuns((lista) =>
+      lista.map((x) => (x.id === a.id ? { ...x, publicado: novo } : x))
+    );
+    try {
+      await setAlbumPublicado(a.id, novo);
+      toast(novo ? "Álbum visível no site" : "Álbum oculto do site");
+    } catch (err) {
+      setAlbuns((lista) =>
+        lista.map((x) => (x.id === a.id ? { ...x, publicado: !novo } : x))
+      );
+      toast("Erro ao atualizar visibilidade");
+      console.error(err);
+    } finally {
+      setPending((p) => ({ ...p, [a.id]: false }));
+    }
+  };
+
+  const remover = async (a: AlbumRow) => {
+    setConfirmarRemocao(null);
+    try {
+      await removerAlbum(a);
+      await recarregar();
+      toast("Álbum removido");
+    } catch (err) {
+      toast("Erro ao remover álbum");
+      console.error(err);
+    }
+  };
+
+  const escolherFotos = async (files: FileList | File[] | null) => {
+    if (!files?.length || enviandoFotos || salvando) return;
+
+    const lista = Array.isArray(files) ? files : Array.from(files);
+    const { validas, avisos } = filtrarImagensParaUpload(lista, qtdFotos);
+
+    if (avisos.length) toast(avisos[0]);
+    if (!validas.length) return;
+
+    if (!editando) {
+      setFotosPendentes((prev) => [
+        ...prev,
+        ...validas.map((file) => ({
+          id: crypto.randomUUID(),
+          file,
+          preview: URL.createObjectURL(file),
+        })),
+      ]);
+      return;
+    }
+
+    setEnviandoFotos(true);
+    try {
+      const base = qtdFotos;
+      await Promise.all(
+        validas.map((f, i) => adicionarFotoAlbum(editando.id, f, base + i))
+      );
+      const novos = await fetchAlbunsAdmin();
+      setAlbuns(novos);
+      setEditando(novos.find((x) => x.id === editando.id) ?? null);
+      toast(
+        validas.length === 1
+          ? "Foto adicionada"
+          : `${validas.length} fotos adicionadas`
+      );
+    } catch (err) {
+      toast("Erro ao enviar foto");
+      console.error(err);
+    } finally {
+      setEnviandoFotos(false);
+    }
+  };
+
+  const aoSoltarArquivos = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (enviandoFotos || salvando || qtdFotos >= MAX_FOTOS_ALBUM) return;
+    escolherFotos(e.dataTransfer.files);
+  };
+
+  const removerFotoPendente = (id: string) => {
+    setFotosPendentes((prev) => {
+      const alvo = prev.find((f) => f.id === id);
+      if (alvo) URL.revokeObjectURL(alvo.preview);
+      return prev.filter((f) => f.id !== id);
+    });
+  };
+
+  const excluirFoto = async (fotoId: string) => {
+    if (!editando) return;
+    const foto = editando.album_fotos?.find((f) => f.id === fotoId);
+    if (!foto) return;
+    try {
+      await removerFotoAlbum(foto);
+      const novos = await fetchAlbunsAdmin();
+      setAlbuns(novos);
+      setEditando(novos.find((x) => x.id === editando.id) ?? null);
+      toast("Foto removida");
+    } catch (err) {
+      toast("Erro ao remover foto");
+      console.error(err);
+    }
+  };
+
+  return (
+    <div>
+      <p className="mb-5 m-0 text-[14.5px] text-ink-2">
+        Crie álbuns com várias fotos para a galeria do site. A primeira foto
+        vira a capa.
+      </p>
+
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <input
+          type="search"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Buscar álbum pelo nome…"
+          aria-label="Buscar álbum pelo nome"
+          className="w-full max-w-md rounded-xl border-[1.5px] border-black/[.12] bg-white px-4 py-3 text-[14.5px] text-ink outline-none transition-colors placeholder:text-ink-2/70 focus:border-azul"
+        />
+        {!loading && (
+          <p className="m-0 text-[14px] font-bold text-ink-2">
+            {busca.trim()
+              ? `${filtrados.length} de ${albuns.length} ${albuns.length === 1 ? "álbum" : "álbuns"}`
+              : `${albuns.length} ${albuns.length === 1 ? "álbum" : "álbuns"}`}
+          </p>
+        )}
+      </div>
+
+      {loading ? (
+        <p className="text-ink-2">Carregando…</p>
+      ) : albuns.length === 0 ? (
+        <p className="text-ink-2">Nenhum álbum cadastrado.</p>
+      ) : filtrados.length === 0 ? (
+        <p className="text-ink-2">
+          Nenhum álbum encontrado para “{busca.trim()}”.
+        </p>
+      ) : (
+        <div className="grid gap-3.5">
+          {filtrados.map((a) => {
+            const busy = pending[a.id];
+            const capa = capaAlbum(a);
+            return (
+              <div
+                key={a.id}
+                className="rounded-2xl border border-black/[.06] bg-white p-4 shadow-sm sm:flex sm:items-center sm:gap-4 sm:px-5 sm:py-4"
+              >
+                <div className="flex min-w-0 flex-1 gap-3.5 sm:items-center sm:gap-4">
+                  {capa ? (
+                    <img
+                      src={capa}
+                      alt=""
+                      className="h-[72px] w-[96px] flex-none rounded-[10px] object-cover sm:h-16 sm:w-24"
+                    />
+                  ) : (
+                    <div className="flex h-[72px] w-[96px] flex-none items-center justify-center rounded-[10px] bg-subtle text-[11px] text-ink-3 sm:h-16 sm:w-24">
+                      sem foto
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-display text-[15.5px] font-extrabold leading-snug sm:text-base">
+                      {a.titulo}
+                    </div>
+                    <div className="mt-1 text-[13px] leading-snug text-ink-2 sm:mt-0.5 sm:text-[13.5px]">
+                      {a.data ? fmtDataBR(a.data) : "Sem data"} ·{" "}
+                      {a.album_fotos?.length ?? 0} foto(s)
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3.5 flex flex-col gap-3 border-t border-black/[.06] pt-3.5 sm:mt-0 sm:flex-none sm:flex-row sm:items-center sm:gap-3 sm:border-0 sm:pt-0">
+                  <div className="flex items-center justify-between gap-3 rounded-[10px] bg-subtle/80 px-3.5 py-2.5 sm:flex-col sm:justify-center sm:gap-1 sm:bg-transparent sm:px-0 sm:py-0">
+                    <span className="text-[12.5px] font-bold text-ink-2 sm:text-[11px]">
+                      Visível no site
+                    </span>
+                    <Toggle
+                      on={a.publicado}
+                      color="bg-azul"
+                      disabled={busy}
+                      onClick={() => toggleVis(a)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-1">
+                    <button
+                      onClick={() => abrirEditar(a)}
+                      className="rounded-[9px] border border-azul/20 bg-azul/[.06] px-3 py-2.5 text-[13.5px] font-bold text-azul transition-colors hover:bg-azul/[.12] sm:border-0 sm:bg-transparent sm:py-2 sm:hover:bg-azul/[.08]"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => setConfirmarRemocao(a)}
+                      className="rounded-[9px] border border-vermelho/20 bg-vermelho/[.06] px-3 py-2.5 text-[13.5px] font-bold text-vermelho transition-colors hover:bg-vermelho/[.12] sm:border-0 sm:bg-transparent sm:py-2 sm:hover:bg-vermelho/[.08]"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <Modal open={modalOpen} onClose={fecharModal}>
+        <h2 className="mb-[22px] font-display text-[22px] font-black">
+          {editando ? "Editar álbum" : "Novo álbum"}
+        </h2>
+        <div className="grid gap-3.5">
+          <Campo label="Título do álbum">
+            <input
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              className={inputCls}
+            />
+          </Campo>
+          <Campo label="Data (opcional)">
+            <input
+              type="date"
+              value={data}
+              onChange={(e) => setData(e.target.value)}
+              className={inputCls}
+            />
+          </Campo>
+          <Campo label="Descrição">
+            <textarea
+              rows={3}
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              className={`${inputCls} resize-y`}
+            />
+          </Campo>
+
+          <div>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <span className="text-[13px] font-bold">Fotos do álbum</span>
+              <span className="text-[12px] font-semibold text-ink-2">
+                {qtdFotos}/{MAX_FOTOS_ALBUM}
+              </span>
+            </div>
+            <div
+              onDragEnter={(e) => {
+                e.preventDefault();
+                if (
+                  !enviandoFotos &&
+                  !salvando &&
+                  qtdFotos < MAX_FOTOS_ALBUM
+                ) {
+                  setDragOver(true);
+                }
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setDragOver(false);
+                }
+              }}
+              onDrop={aoSoltarArquivos}
+              className={[
+                "rounded-[12px] border-2 border-dashed p-3 transition-colors",
+                dragOver
+                  ? "border-azul bg-azul/[.06]"
+                  : "border-black/[.15] bg-white",
+              ].join(" ")}
+            >
+              <div className="flex max-h-[220px] flex-wrap gap-2.5 overflow-y-auto pt-2 pr-2">
+                {editando
+                  ? [...(editando.album_fotos ?? [])]
+                      .sort((x, y) => (x.ordem ?? 0) - (y.ordem ?? 0))
+                      .map((ft) => (
+                        <div key={ft.id} className="relative">
+                          <img
+                            src={publicUrl(BUCKET_ALBUNS, ft.storage_path)}
+                            alt=""
+                            className="block h-[76px] w-[110px] rounded-[10px] object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => excluirFoto(ft.id)}
+                            disabled={enviandoFotos || salvando}
+                            className="absolute -right-[7px] -top-[7px] flex h-[22px] w-[22px] items-center justify-center rounded-full bg-vermelho text-xs font-extrabold text-white shadow-[0_2px_6px_rgba(0,0,0,.25)] disabled:opacity-60"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))
+                  : fotosPendentes.map((ft) => (
+                      <div key={ft.id} className="relative">
+                        <img
+                          src={ft.preview}
+                          alt=""
+                          className="block h-[76px] w-[110px] rounded-[10px] object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removerFotoPendente(ft.id)}
+                          disabled={salvando}
+                          className="absolute -right-[7px] -top-[7px] flex h-[22px] w-[22px] items-center justify-center rounded-full bg-vermelho text-xs font-extrabold text-white shadow-[0_2px_6px_rgba(0,0,0,.25)] disabled:opacity-60"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                {qtdFotos < MAX_FOTOS_ALBUM && (
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={enviandoFotos || salvando}
+                    className="flex h-[76px] w-[110px] flex-col items-center justify-center gap-0.5 rounded-[10px] border-2 border-dashed border-black/[.18] text-[12px] font-bold text-ink-3 transition-colors hover:border-azul hover:text-azul disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span className="text-lg">+</span>
+                    {enviandoFotos ? "Enviando…" : "Adicionar"}
+                  </button>
+                )}
+              </div>
+              <p className="m-0 mt-2.5 text-[12px] leading-[1.45] text-ink-3">
+                Arraste imagens aqui ou clique em Adicionar. Apenas imagens, até
+                2 MB cada, máximo de {MAX_FOTOS_ALBUM} fotos.
+                {!editando && fotosPendentes.length > 0 && (
+                  <> Serão enviadas ao salvar o álbum.</>
+                )}
+              </p>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={(e) => {
+                  escolherFotos(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="mt-2 flex justify-end gap-3">
+            <button
+              onClick={fecharModal}
+              className="rounded-full border-[1.5px] border-black/[.13] px-6 py-3 text-sm font-bold transition-colors hover:border-ink-2"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={salvar}
+              disabled={salvando}
+              className="rounded-full bg-verde px-7 py-3 font-display text-sm font-extrabold text-white transition-colors hover:bg-verde-hover disabled:opacity-60"
+            >
+              {salvando ? "Salvando…" : "Salvar álbum"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        open={Boolean(confirmarRemocao)}
+        titulo="Remover este álbum?"
+        descricao={
+          confirmarRemocao
+            ? `"${confirmarRemocao.titulo}" sai do site, junto com as fotos dele. Não dá para desfazer.`
+            : undefined
+        }
+        onConfirm={() => confirmarRemocao && void remover(confirmarRemocao)}
+        onClose={() => setConfirmarRemocao(null)}
+      />
+    </div>
+  );
+}
+
+function Campo({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="mb-1.5 text-[13px] font-bold">{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function Toggle({
+  on,
+  color,
+  disabled,
+  onClick,
+}: {
+  on: boolean;
+  color: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={on}
+      className={[
+        "relative h-[26px] w-[46px] rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+        on ? color : "bg-black/[.18]",
+      ].join(" ")}
+    >
+      <span
+        className="absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,.25)] transition-[left]"
+        style={{ left: on ? "23px" : "3px" }}
+      />
+    </button>
+  );
+}

@@ -16,6 +16,14 @@ import {
   fmtDataBR,
   type EventoRow,
 } from "@/lib/eventos";
+import AdminAlbuns from "@/pages/admin/AdminAlbuns";
+
+type AbaAdmin = "agenda" | "albuns";
+
+const ABAS: { key: AbaAdmin; label: string }[] = [
+  { key: "agenda", label: "Agenda" },
+  { key: "albuns", label: "Álbuns de fotos" },
+];
 
 const inputCls =
   "w-full rounded-[11px] border-[1.5px] border-black/[.13] px-[14px] py-3 text-[15px] outline-none transition-colors focus:border-azul";
@@ -80,6 +88,10 @@ type FotoPendente = {
 export default function AdminEventos() {
   const { toast } = useToast();
   const [params, setParams] = useSearchParams();
+  const [aba, setAba] = useState<AbaAdmin>(
+    params.get("aba") === "albuns" ? "albuns" : "agenda"
+  );
+  const [novoAlbumPedido, setNovoAlbumPedido] = useState(0);
   const [eventos, setEventos] = useState<EventoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
@@ -135,8 +147,10 @@ export default function AdminEventos() {
   // Abertura automática via ?novo=1 (vindo das ações rápidas)
   useEffect(() => {
     if (params.get("novo") === "1") {
+      setAba("agenda");
       abrirNovo();
       params.delete("novo");
+      params.delete("aba");
       setParams(params, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -308,309 +322,360 @@ export default function AdminEventos() {
     }
   };
 
+  const trocarAba = (proxima: AbaAdmin) => {
+    setAba(proxima);
+    const next = new URLSearchParams(params);
+    if (proxima === "albuns") next.set("aba", "albuns");
+    else next.delete("aba");
+    setParams(next, { replace: true });
+  };
+
+  const cliqueNovo = () => {
+    if (aba === "albuns") setNovoAlbumPedido((n) => n + 1);
+    else abrirNovo();
+  };
+
   return (
     <div>
       <div className="mb-6 flex items-start justify-between gap-3 sm:items-center sm:gap-4">
         <div className="min-w-0 flex-1">
-          <h1 className="mb-1 font-display text-[28px] font-black">Eventos</h1>
+          <h1 className="mb-1 font-display text-[28px] font-black">
+            Eventos e fotos
+          </h1>
           <p className="m-0 text-[14.5px] text-ink-2">
-            Adicione, edite ou remova eventos da agenda. As fotos de cada evento
-            são gerenciadas aqui.
+            Gerencie a agenda e os álbuns de fotos que aparecem no site.
           </p>
         </div>
         <button
-          onClick={abrirNovo}
-          aria-label="Novo evento"
+          onClick={cliqueNovo}
+          aria-label={aba === "albuns" ? "Novo álbum" : "Novo evento"}
           className="inline-flex flex-none items-center justify-center gap-2 rounded-full bg-azul px-3.5 py-3 font-display text-[14.5px] font-extrabold text-white shadow-[0_3px_10px_rgba(46,111,183,.3)] transition-colors hover:bg-azul-hover sm:px-[22px]"
         >
           <span aria-hidden="true" className="text-xl leading-none">
             +
           </span>
-          <span className="hidden sm:inline">Novo evento</span>
+          <span className="hidden sm:inline">
+            {aba === "albuns" ? "Novo álbum" : "Novo evento"}
+          </span>
         </button>
       </div>
 
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <input
-          type="search"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar evento pelo nome…"
-          aria-label="Buscar evento pelo nome"
-          className="w-full max-w-md rounded-xl border-[1.5px] border-black/[.12] bg-white px-4 py-3 text-[14.5px] text-ink outline-none transition-colors placeholder:text-ink-2/70 focus:border-azul"
-        />
-        {!loading && (
-          <p className="m-0 text-[14px] font-bold text-ink-2">
-            {busca.trim()
-              ? `${filtrados.length} de ${eventos.length} ${eventos.length === 1 ? "evento" : "eventos"}`
-              : `${eventos.length} ${eventos.length === 1 ? "evento" : "eventos"}`}
-          </p>
-        )}
-      </div>
-
-      {loading ? (
-        <p className="text-ink-2">Carregando…</p>
-      ) : eventos.length === 0 ? (
-        <p className="text-ink-2">Nenhum evento cadastrado.</p>
-      ) : filtrados.length === 0 ? (
-        <p className="text-ink-2">
-          Nenhum evento encontrado para “{busca.trim()}”.
-        </p>
-      ) : (
-        <div className="grid gap-3.5">
-          {filtrados.map((e) => {
-            const futuro = ehFuturo(e.data);
-            const busy = pending[e.id];
-            const capa = e.evento_fotos?.[0]
-              ? publicUrl(BUCKET_EVENTOS, e.evento_fotos[0].storage_path)
-              : null;
-            return (
-              <div
-                key={e.id}
-                className="rounded-2xl border border-black/[.06] bg-white p-4 shadow-sm sm:flex sm:items-center sm:gap-4 sm:px-5 sm:py-4"
-              >
-                <div className="flex min-w-0 flex-1 gap-3.5 sm:items-center sm:gap-4">
-                  {capa ? (
-                    <img
-                      src={capa}
-                      alt=""
-                      className="h-[72px] w-[96px] flex-none rounded-[10px] object-cover sm:h-16 sm:w-24"
-                    />
-                  ) : (
-                    <div className="flex h-[72px] w-[96px] flex-none items-center justify-center rounded-[10px] bg-subtle text-[11px] text-ink-3 sm:h-16 sm:w-24">
-                      sem foto
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="font-display text-[15.5px] font-extrabold leading-snug sm:text-base">
-                      {e.titulo}
-                    </div>
-                    <div className="mt-1 text-[13px] leading-snug text-ink-2 sm:mt-0.5 sm:text-[13.5px]">
-                      {fmtDataBR(e.data)} · {e.hora ?? "—"} ·{" "}
-                      {e.evento_fotos?.length ?? 0} foto(s)
-                    </div>
-                    <span
-                      className={[
-                        "mt-2 inline-flex rounded-full px-3 py-[5px] text-xs font-bold sm:hidden",
-                        futuro
-                          ? "bg-laranja/[.12] text-laranja"
-                          : "bg-black/[.07] text-ink-2",
-                      ].join(" ")}
-                    >
-                      {futuro ? "Em breve" : "Finalizado"}
-                    </span>
-                  </div>
-                  <span
-                    className={[
-                      "hidden flex-none rounded-full px-3 py-[5px] text-xs font-bold sm:inline-flex",
-                      futuro
-                        ? "bg-laranja/[.12] text-laranja"
-                        : "bg-black/[.07] text-ink-2",
-                    ].join(" ")}
-                  >
-                    {futuro ? "Em breve" : "Finalizado"}
-                  </span>
-                </div>
-
-                <div className="mt-3.5 flex flex-col gap-3 border-t border-black/[.06] pt-3.5 sm:mt-0 sm:flex-none sm:flex-row sm:items-center sm:gap-3 sm:border-0 sm:pt-0">
-                  <div className="flex items-center justify-between gap-3 rounded-[10px] bg-subtle/80 px-3.5 py-2.5 sm:flex-col sm:justify-center sm:gap-1 sm:bg-transparent sm:px-0 sm:py-0">
-                    <span className="text-[12.5px] font-bold text-ink-2 sm:text-[11px]">
-                      Visível no site
-                    </span>
-                    <Toggle
-                      on={e.publicado}
-                      color="bg-azul"
-                      disabled={busy}
-                      onClick={() => toggleVis(e)}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-1">
-                    <button
-                      onClick={() => abrirEditar(e)}
-                      className="rounded-[9px] border border-azul/20 bg-azul/[.06] px-3 py-2.5 text-[13.5px] font-bold text-azul transition-colors hover:bg-azul/[.12] sm:border-0 sm:bg-transparent sm:py-2 sm:hover:bg-azul/[.08]"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => setConfirmarRemocao(e)}
-                      className="rounded-[9px] border border-vermelho/20 bg-vermelho/[.06] px-3 py-2.5 text-[13.5px] font-bold text-vermelho transition-colors hover:bg-vermelho/[.12] sm:border-0 sm:bg-transparent sm:py-2 sm:hover:bg-vermelho/[.08]"
-                    >
-                      Remover
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Modal */}
-      <Modal open={modalOpen} onClose={fecharModal}>
-        <h2 className="mb-[22px] font-display text-[22px] font-black">
-          {editando ? "Editar evento" : "Novo evento"}
-        </h2>
-        <div className="grid gap-3.5">
-          <Campo label="Título do evento">
-            <input
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              className={inputCls}
-            />
-          </Campo>
-          <div className="grid grid-cols-2 gap-3.5">
-            <Campo label="Data">
-              <input
-                type="date"
-                value={data}
-                onChange={(e) => setData(e.target.value)}
-                className={inputCls}
-              />
-            </Campo>
-            <Campo label="Horário">
-              <input
-                type="time"
-                value={hora}
-                onChange={(e) => setHora(e.target.value)}
-                className={inputCls}
-              />
-            </Campo>
-          </div>
-          <Campo label="Descrição">
-            <textarea
-              rows={3}
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
-              className={`${inputCls} resize-y`}
-            />
-          </Campo>
-
-          <div>
-            <div className="mb-1.5 flex items-center justify-between gap-2">
-              <span className="text-[13px] font-bold">Fotos do evento</span>
-              <span className="text-[12px] font-semibold text-ink-2">
-                {qtdFotos}/{MAX_FOTOS_EVENTO}
-              </span>
-            </div>
-            <div
-              onDragEnter={(e) => {
-                e.preventDefault();
-                if (!enviandoFotos && !salvando && qtdFotos < MAX_FOTOS_EVENTO) {
-                  setDragOver(true);
-                }
-              }}
-              onDragOver={(e) => e.preventDefault()}
-              onDragLeave={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                  setDragOver(false);
-                }
-              }}
-              onDrop={aoSoltarArquivos}
+      <div className="mb-5 flex flex-wrap gap-2">
+        {ABAS.map((a) => {
+          const active = aba === a.key;
+          return (
+            <button
+              key={a.key}
+              type="button"
+              onClick={() => trocarAba(a.key)}
               className={[
-                "rounded-[12px] border-2 border-dashed p-3 transition-colors",
-                dragOver
-                  ? "border-azul bg-azul/[.06]"
-                  : "border-black/[.15] bg-white",
+                "rounded-full border-[1.5px] px-[18px] py-[9px] text-[13.5px] font-bold transition-colors",
+                active
+                  ? "border-dark bg-dark text-white"
+                  : "border-black/[.12] bg-white text-ink-mid hover:border-dark",
               ].join(" ")}
             >
-              <div className="flex flex-wrap gap-2.5">
-                {editando
-                  ? editando.evento_fotos?.map((ft) => (
-                      <div key={ft.id} className="relative">
-                        <img
-                          src={publicUrl(BUCKET_EVENTOS, ft.storage_path)}
-                          alt=""
-                          className="block h-[76px] w-[110px] rounded-[10px] object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => excluirFoto(ft.id)}
-                          disabled={enviandoFotos || salvando}
-                          className="absolute -right-[7px] -top-[7px] flex h-[22px] w-[22px] items-center justify-center rounded-full bg-vermelho text-xs font-extrabold text-white shadow-[0_2px_6px_rgba(0,0,0,.25)] disabled:opacity-60"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))
-                  : fotosPendentes.map((ft) => (
-                      <div key={ft.id} className="relative">
-                        <img
-                          src={ft.preview}
-                          alt=""
-                          className="block h-[76px] w-[110px] rounded-[10px] object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removerFotoPendente(ft.id)}
-                          disabled={salvando}
-                          className="absolute -right-[7px] -top-[7px] flex h-[22px] w-[22px] items-center justify-center rounded-full bg-vermelho text-xs font-extrabold text-white shadow-[0_2px_6px_rgba(0,0,0,.25)] disabled:opacity-60"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                {qtdFotos < MAX_FOTOS_EVENTO && (
-                  <button
-                    type="button"
-                    onClick={() => fileRef.current?.click()}
-                    disabled={enviandoFotos || salvando}
-                    className="flex h-[76px] w-[110px] flex-col items-center justify-center gap-0.5 rounded-[10px] border-2 border-dashed border-black/[.18] text-[12px] font-bold text-ink-3 transition-colors hover:border-azul hover:text-azul disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <span className="text-lg">+</span>
-                    {enviandoFotos ? "Enviando…" : "Adicionar"}
-                  </button>
-                )}
-              </div>
-              <p className="m-0 mt-2.5 text-[12px] leading-[1.45] text-ink-3">
-                Arraste imagens aqui ou clique em Adicionar. Apenas imagens, até
-                2 MB cada, máximo de {MAX_FOTOS_EVENTO} fotos.
-                {!editando && fotosPendentes.length > 0 && (
-                  <> Serão enviadas ao salvar o evento.</>
-                )}
+              {a.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {aba === "albuns" ? (
+        <AdminAlbuns pedirNovo={novoAlbumPedido} />
+      ) : (
+        <>
+          <p className="mb-5 m-0 text-[14.5px] text-ink-2">
+            Adicione, edite ou remova eventos da agenda. As fotos de cada evento
+            (até 3) são gerenciadas aqui.
+          </p>
+
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <input
+              type="search"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar evento pelo nome…"
+              aria-label="Buscar evento pelo nome"
+              className="w-full max-w-md rounded-xl border-[1.5px] border-black/[.12] bg-white px-4 py-3 text-[14.5px] text-ink outline-none transition-colors placeholder:text-ink-2/70 focus:border-azul"
+            />
+            {!loading && (
+              <p className="m-0 text-[14px] font-bold text-ink-2">
+                {busca.trim()
+                  ? `${filtrados.length} de ${eventos.length} ${eventos.length === 1 ? "evento" : "eventos"}`
+                  : `${eventos.length} ${eventos.length === 1 ? "evento" : "eventos"}`}
               </p>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                multiple
-                hidden
-                onChange={(e) => {
-                  escolherFotos(e.target.files);
-                  e.target.value = "";
-                }}
-              />
+            )}
+          </div>
+
+          {loading ? (
+            <p className="text-ink-2">Carregando…</p>
+          ) : eventos.length === 0 ? (
+            <p className="text-ink-2">Nenhum evento cadastrado.</p>
+          ) : filtrados.length === 0 ? (
+            <p className="text-ink-2">
+              Nenhum evento encontrado para “{busca.trim()}”.
+            </p>
+          ) : (
+            <div className="grid gap-3.5">
+              {filtrados.map((e) => {
+                const futuro = ehFuturo(e.data);
+                const busy = pending[e.id];
+                const capa = e.evento_fotos?.[0]
+                  ? publicUrl(BUCKET_EVENTOS, e.evento_fotos[0].storage_path)
+                  : null;
+                return (
+                  <div
+                    key={e.id}
+                    className="rounded-2xl border border-black/[.06] bg-white p-4 shadow-sm sm:flex sm:items-center sm:gap-4 sm:px-5 sm:py-4"
+                  >
+                    <div className="flex min-w-0 flex-1 gap-3.5 sm:items-center sm:gap-4">
+                      {capa ? (
+                        <img
+                          src={capa}
+                          alt=""
+                          className="h-[72px] w-[96px] flex-none rounded-[10px] object-cover sm:h-16 sm:w-24"
+                        />
+                      ) : (
+                        <div className="flex h-[72px] w-[96px] flex-none items-center justify-center rounded-[10px] bg-subtle text-[11px] text-ink-3 sm:h-16 sm:w-24">
+                          sem foto
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="font-display text-[15.5px] font-extrabold leading-snug sm:text-base">
+                          {e.titulo}
+                        </div>
+                        <div className="mt-1 text-[13px] leading-snug text-ink-2 sm:mt-0.5 sm:text-[13.5px]">
+                          {fmtDataBR(e.data)} · {e.hora ?? "—"} ·{" "}
+                          {e.evento_fotos?.length ?? 0} foto(s)
+                        </div>
+                        <span
+                          className={[
+                            "mt-2 inline-flex rounded-full px-3 py-[5px] text-xs font-bold sm:hidden",
+                            futuro
+                              ? "bg-laranja/[.12] text-laranja"
+                              : "bg-black/[.07] text-ink-2",
+                          ].join(" ")}
+                        >
+                          {futuro ? "Em breve" : "Finalizado"}
+                        </span>
+                      </div>
+                      <span
+                        className={[
+                          "hidden flex-none rounded-full px-3 py-[5px] text-xs font-bold sm:inline-flex",
+                          futuro
+                            ? "bg-laranja/[.12] text-laranja"
+                            : "bg-black/[.07] text-ink-2",
+                        ].join(" ")}
+                      >
+                        {futuro ? "Em breve" : "Finalizado"}
+                      </span>
+                    </div>
+
+                    <div className="mt-3.5 flex flex-col gap-3 border-t border-black/[.06] pt-3.5 sm:mt-0 sm:flex-none sm:flex-row sm:items-center sm:gap-3 sm:border-0 sm:pt-0">
+                      <div className="flex items-center justify-between gap-3 rounded-[10px] bg-subtle/80 px-3.5 py-2.5 sm:flex-col sm:justify-center sm:gap-1 sm:bg-transparent sm:px-0 sm:py-0">
+                        <span className="text-[12.5px] font-bold text-ink-2 sm:text-[11px]">
+                          Visível no site
+                        </span>
+                        <Toggle
+                          on={e.publicado}
+                          color="bg-azul"
+                          disabled={busy}
+                          onClick={() => toggleVis(e)}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-1">
+                        <button
+                          onClick={() => abrirEditar(e)}
+                          className="rounded-[9px] border border-azul/20 bg-azul/[.06] px-3 py-2.5 text-[13.5px] font-bold text-azul transition-colors hover:bg-azul/[.12] sm:border-0 sm:bg-transparent sm:py-2 sm:hover:bg-azul/[.08]"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => setConfirmarRemocao(e)}
+                          className="rounded-[9px] border border-vermelho/20 bg-vermelho/[.06] px-3 py-2.5 text-[13.5px] font-bold text-vermelho transition-colors hover:bg-vermelho/[.12] sm:border-0 sm:bg-transparent sm:py-2 sm:hover:bg-vermelho/[.08]"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
+          )}
 
-          <div className="mt-2 flex justify-end gap-3">
-            <button
-              onClick={fecharModal}
-              className="rounded-full border-[1.5px] border-black/[.13] px-6 py-3 text-sm font-bold transition-colors hover:border-ink-2"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={salvar}
-              disabled={salvando}
-              className="rounded-full bg-verde px-7 py-3 font-display text-sm font-extrabold text-white transition-colors hover:bg-verde-hover disabled:opacity-60"
-            >
-              {salvando ? "Salvando…" : "Salvar evento"}
-            </button>
-          </div>
-        </div>
-      </Modal>
+          <Modal open={modalOpen} onClose={fecharModal}>
+            <h2 className="mb-[22px] font-display text-[22px] font-black">
+              {editando ? "Editar evento" : "Novo evento"}
+            </h2>
+            <div className="grid gap-3.5">
+              <Campo label="Título do evento">
+                <input
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                  className={inputCls}
+                />
+              </Campo>
+              <div className="grid grid-cols-2 gap-3.5">
+                <Campo label="Data">
+                  <input
+                    type="date"
+                    value={data}
+                    onChange={(e) => setData(e.target.value)}
+                    className={inputCls}
+                  />
+                </Campo>
+                <Campo label="Horário">
+                  <input
+                    type="time"
+                    value={hora}
+                    onChange={(e) => setHora(e.target.value)}
+                    className={inputCls}
+                  />
+                </Campo>
+              </div>
+              <Campo label="Descrição">
+                <textarea
+                  rows={3}
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
+                  className={`${inputCls} resize-y`}
+                />
+              </Campo>
 
-      <ConfirmDialog
-        open={Boolean(confirmarRemocao)}
-        titulo="Remover este evento?"
-        descricao={
-          confirmarRemocao
-            ? `"${confirmarRemocao.titulo}" sai do site, junto com as fotos dele. Não dá para desfazer.`
-            : undefined
-        }
-        onConfirm={() => confirmarRemocao && void remover(confirmarRemocao)}
-        onClose={() => setConfirmarRemocao(null)}
-      />
+              <div>
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <span className="text-[13px] font-bold">Fotos do evento</span>
+                  <span className="text-[12px] font-semibold text-ink-2">
+                    {qtdFotos}/{MAX_FOTOS_EVENTO}
+                  </span>
+                </div>
+                <div
+                  onDragEnter={(e) => {
+                    e.preventDefault();
+                    if (
+                      !enviandoFotos &&
+                      !salvando &&
+                      qtdFotos < MAX_FOTOS_EVENTO
+                    ) {
+                      setDragOver(true);
+                    }
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDragLeave={(e) => {
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                      setDragOver(false);
+                    }
+                  }}
+                  onDrop={aoSoltarArquivos}
+                  className={[
+                    "rounded-[12px] border-2 border-dashed p-3 transition-colors",
+                    dragOver
+                      ? "border-azul bg-azul/[.06]"
+                      : "border-black/[.15] bg-white",
+                  ].join(" ")}
+                >
+                  <div className="flex flex-wrap gap-2.5">
+                    {editando
+                      ? editando.evento_fotos?.map((ft) => (
+                          <div key={ft.id} className="relative">
+                            <img
+                              src={publicUrl(BUCKET_EVENTOS, ft.storage_path)}
+                              alt=""
+                              className="block h-[76px] w-[110px] rounded-[10px] object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => excluirFoto(ft.id)}
+                              disabled={enviandoFotos || salvando}
+                              className="absolute -right-[7px] -top-[7px] flex h-[22px] w-[22px] items-center justify-center rounded-full bg-vermelho text-xs font-extrabold text-white shadow-[0_2px_6px_rgba(0,0,0,.25)] disabled:opacity-60"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))
+                      : fotosPendentes.map((ft) => (
+                          <div key={ft.id} className="relative">
+                            <img
+                              src={ft.preview}
+                              alt=""
+                              className="block h-[76px] w-[110px] rounded-[10px] object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removerFotoPendente(ft.id)}
+                              disabled={salvando}
+                              className="absolute -right-[7px] -top-[7px] flex h-[22px] w-[22px] items-center justify-center rounded-full bg-vermelho text-xs font-extrabold text-white shadow-[0_2px_6px_rgba(0,0,0,.25)] disabled:opacity-60"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                    {qtdFotos < MAX_FOTOS_EVENTO && (
+                      <button
+                        type="button"
+                        onClick={() => fileRef.current?.click()}
+                        disabled={enviandoFotos || salvando}
+                        className="flex h-[76px] w-[110px] flex-col items-center justify-center gap-0.5 rounded-[10px] border-2 border-dashed border-black/[.18] text-[12px] font-bold text-ink-3 transition-colors hover:border-azul hover:text-azul disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <span className="text-lg">+</span>
+                        {enviandoFotos ? "Enviando…" : "Adicionar"}
+                      </button>
+                    )}
+                  </div>
+                  <p className="m-0 mt-2.5 text-[12px] leading-[1.45] text-ink-3">
+                    Arraste imagens aqui ou clique em Adicionar. Apenas imagens,
+                    até 2 MB cada, máximo de {MAX_FOTOS_EVENTO} fotos.
+                    {!editando && fotosPendentes.length > 0 && (
+                      <> Serão enviadas ao salvar o evento.</>
+                    )}
+                  </p>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    hidden
+                    onChange={(e) => {
+                      escolherFotos(e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-2 flex justify-end gap-3">
+                <button
+                  onClick={fecharModal}
+                  className="rounded-full border-[1.5px] border-black/[.13] px-6 py-3 text-sm font-bold transition-colors hover:border-ink-2"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={salvar}
+                  disabled={salvando}
+                  className="rounded-full bg-verde px-7 py-3 font-display text-sm font-extrabold text-white transition-colors hover:bg-verde-hover disabled:opacity-60"
+                >
+                  {salvando ? "Salvando…" : "Salvar evento"}
+                </button>
+              </div>
+            </div>
+          </Modal>
+
+          <ConfirmDialog
+            open={Boolean(confirmarRemocao)}
+            titulo="Remover este evento?"
+            descricao={
+              confirmarRemocao
+                ? `"${confirmarRemocao.titulo}" sai do site, junto com as fotos dele. Não dá para desfazer.`
+                : undefined
+            }
+            onConfirm={() => confirmarRemocao && void remover(confirmarRemocao)}
+            onClose={() => setConfirmarRemocao(null)}
+          />
+        </>
+      )}
     </div>
   );
 }
