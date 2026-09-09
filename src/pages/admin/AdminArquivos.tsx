@@ -11,12 +11,17 @@ import {
   setArquivoEncerrado,
   isArquivoVisivel,
   ehCategoriaEdital,
+  ehConvenio,
+  ehAditivo,
   urlArquivo,
   fmtTamanho,
   fmtDataPublicacao,
+  fmtCompetencia,
   tipoArquivo,
   CATEGORIA_LABEL,
   SUBCAT_TRANSP,
+  MESES_LABEL,
+  anosCompetencia,
   type ArquivoRow,
   type CategoriaArquivo,
   type SubcatTransparencia,
@@ -87,9 +92,26 @@ export default function AdminArquivos() {
   const [nome, setNome] = useState("");
   const [cat, setCat] = useState<CategoriaArquivo>("compra");
   const [subcat, setSubcat] = useState<SubcatTransparencia>("institucionais");
+  const [tipoConvenio, setTipoConvenio] = useState<"convenio" | "aditivo">(
+    "convenio"
+  );
+  const [compMes, setCompMes] = useState(new Date().getMonth() + 1);
+  const [compAno, setCompAno] = useState(new Date().getFullYear());
+  const [paiId, setPaiId] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const conveniosPai = useMemo(
+    () => arquivos.filter(ehConvenio),
+    [arquivos]
+  );
+
+  const nomePorId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const a of arquivos) map.set(a.id, a.nome);
+    return map;
+  }, [arquivos]);
 
   const recarregar = async () => {
     setArquivos(await fetchArquivosAdmin());
@@ -114,6 +136,10 @@ export default function AdminArquivos() {
     setNome("");
     setCat("compra");
     setSubcat("institucionais");
+    setTipoConvenio("convenio");
+    setCompMes(new Date().getMonth() + 1);
+    setCompAno(new Date().getFullYear());
+    setPaiId("");
     setDragOver(false);
     setModalOpen(true);
   };
@@ -141,6 +167,17 @@ export default function AdminArquivos() {
       toast("Escolha um arquivo primeiro");
       return;
     }
+    const ehConvenios = cat === "transparencia" && subcat === "convenios";
+    if (ehConvenios) {
+      if (!compMes || !compAno) {
+        toast("Informe o mês e o ano de competência");
+        return;
+      }
+      if (tipoConvenio === "aditivo" && !paiId) {
+        toast("Selecione o convênio ao qual o aditivo se refere");
+        return;
+      }
+    }
     setSalvando(true);
     try {
       await publicarArquivo({
@@ -148,6 +185,10 @@ export default function AdminArquivos() {
         categoria: cat,
         subcategoria: subcat,
         file,
+        competencia_mes: ehConvenios ? compMes : null,
+        competencia_ano: ehConvenios ? compAno : null,
+        arquivo_pai_id:
+          ehConvenios && tipoConvenio === "aditivo" ? paiId : null,
       });
       await recarregar();
       setModalOpen(false);
@@ -371,11 +412,30 @@ export default function AdminArquivos() {
                           {labelSubcat(ar.subcategoria)}
                         </span>
                       )}
+                      {ehConvenio(ar) && (
+                        <span className="rounded-full bg-verde/15 px-2.5 py-[3px] text-[11px] font-bold text-verde">
+                          Convênio
+                          {fmtCompetencia(ar.competencia_mes, ar.competencia_ano)
+                            ? ` · ${fmtCompetencia(ar.competencia_mes, ar.competencia_ano)}`
+                            : ""}
+                        </span>
+                      )}
+                      {ehAditivo(ar) && (
+                        <span className="rounded-full bg-laranja/15 px-2.5 py-[3px] text-[11px] font-bold text-laranja-dark">
+                          Aditivo
+                          {fmtCompetencia(ar.competencia_mes, ar.competencia_ano)
+                            ? ` · ${fmtCompetencia(ar.competencia_mes, ar.competencia_ano)}`
+                            : ""}
+                        </span>
+                      )}
                     </div>
                     <div className="mt-1 text-[12.5px] leading-snug text-ink-2 sm:mt-px">
                       {CATEGORIA_LABEL[ar.categoria]} ·{" "}
                       {fmtDataPublicacao(ar.publicado_em)} ·{" "}
                       {fmtTamanho(ar.tamanho_bytes)}
+                      {ehAditivo(ar) && ar.arquivo_pai_id
+                        ? ` · Ref.: ${nomePorId.get(ar.arquivo_pai_id) ?? "convênio"}`
+                        : ""}
                     </div>
                     {edital && (
                       <div className="mt-2.5 flex w-full items-center gap-1 rounded-full border border-black/[.1] bg-site-bg p-0.5 sm:hidden">
@@ -476,11 +536,34 @@ export default function AdminArquivos() {
       )}
 
       {/* Modal upload */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} width={560}>
-        <h2 className="mb-[22px] font-display text-[22px] font-black">
-          Publicar arquivo
-        </h2>
-        <div className="grid gap-3.5">
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        width={780}
+        header={
+          <h2 className="m-0 font-display text-[22px] font-black">
+            Publicar arquivo
+          </h2>
+        }
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setModalOpen(false)}
+              className="rounded-full border-[1.5px] border-black/[.13] px-6 py-3 text-sm font-bold transition-colors hover:border-ink-2"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={publicar}
+              disabled={salvando}
+              className="rounded-full bg-vermelho px-7 py-3 font-display text-sm font-extrabold text-white transition-colors hover:bg-vermelho-hover disabled:opacity-60"
+            >
+              {salvando ? "Publicando…" : "Publicar"}
+            </button>
+          </div>
+        }
+      >
+        <div className="grid min-w-0 gap-3.5">
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
@@ -571,7 +654,13 @@ export default function AdminArquivos() {
                   return (
                     <button
                       key={s.key}
-                      onClick={() => setSubcat(s.key)}
+                      onClick={() => {
+                        setSubcat(s.key);
+                        if (s.key !== "convenios") {
+                          setTipoConvenio("convenio");
+                          setPaiId("");
+                        }
+                      }}
                       className={[
                         "rounded-full border-[1.5px] px-[15px] py-2 text-[13px] font-bold transition-colors",
                         active
@@ -587,21 +676,101 @@ export default function AdminArquivos() {
             </div>
           )}
 
-          <div className="mt-2 flex justify-end gap-3">
-            <button
-              onClick={() => setModalOpen(false)}
-              className="rounded-full border-[1.5px] border-black/[.13] px-6 py-3 text-sm font-bold transition-colors hover:border-ink-2"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={publicar}
-              disabled={salvando}
-              className="rounded-full bg-vermelho px-7 py-3 font-display text-sm font-extrabold text-white transition-colors hover:bg-vermelho-hover disabled:opacity-60"
-            >
-              {salvando ? "Publicando…" : "Publicar"}
-            </button>
-          </div>
+          {cat === "transparencia" && subcat === "convenios" && (
+            <>
+              <div>
+                <div className="mb-1.5 text-[13px] font-bold">Tipo</div>
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      { key: "convenio" as const, label: "Convênio" },
+                      { key: "aditivo" as const, label: "Aditivo" },
+                    ] as const
+                  ).map((t) => {
+                    const active = tipoConvenio === t.key;
+                    return (
+                      <button
+                        key={t.key}
+                        type="button"
+                        onClick={() => {
+                          setTipoConvenio(t.key);
+                          if (t.key === "convenio") setPaiId("");
+                        }}
+                        className={[
+                          "rounded-full border-[1.5px] px-[15px] py-2 text-[13px] font-bold transition-colors",
+                          active
+                            ? "border-verde bg-verde text-white"
+                            : "border-black/[.12] bg-white text-ink-mid hover:border-verde",
+                        ].join(" ")}
+                      >
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="mb-1.5 text-[13px] font-bold">Mês</div>
+                  <select
+                    value={compMes}
+                    onChange={(e) => setCompMes(Number(e.target.value))}
+                    className={inputCls}
+                  >
+                    {MESES_LABEL.map((m) => (
+                      <option key={m.value} value={m.value}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <div className="mb-1.5 text-[13px] font-bold">Ano</div>
+                  <select
+                    value={compAno}
+                    onChange={(e) => setCompAno(Number(e.target.value))}
+                    className={inputCls}
+                  >
+                    {anosCompetencia().map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {tipoConvenio === "aditivo" && (
+                <div className="min-w-0">
+                  <div className="mb-1.5 text-[13px] font-bold">
+                    Convênio de referência
+                  </div>
+                  {conveniosPai.length === 0 ? (
+                    <p className="m-0 text-[13px] text-ink-2">
+                      Publique um convênio antes de adicionar aditivos.
+                    </p>
+                  ) : (
+                    <SelectTruncado
+                      value={paiId}
+                      placeholder="Selecione o convênio…"
+                      onChange={setPaiId}
+                      opcoes={conveniosPai.map((c) => {
+                        const comp = fmtCompetencia(
+                          c.competencia_mes,
+                          c.competencia_ano
+                        );
+                        return {
+                          value: c.id,
+                          label: comp ? `${c.nome} (${comp})` : c.nome,
+                        };
+                      })}
+                    />
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </Modal>
 
@@ -610,12 +779,119 @@ export default function AdminArquivos() {
         titulo="Remover este arquivo?"
         descricao={
           confirmarRemocao
-            ? `"${confirmarRemocao.nome}" sai do site e o arquivo é apagado. Não dá para desfazer.`
+            ? ehConvenio(confirmarRemocao)
+              ? `"${confirmarRemocao.nome}" sai do site junto com seus aditivos. Não dá para desfazer.`
+              : `"${confirmarRemocao.nome}" sai do site e o arquivo é apagado. Não dá para desfazer.`
             : undefined
         }
         onConfirm={() => confirmarRemocao && void remover(confirmarRemocao)}
         onClose={() => setConfirmarRemocao(null)}
       />
+    </div>
+  );
+}
+
+function SelectTruncado({
+  value,
+  onChange,
+  placeholder,
+  opcoes,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  opcoes: { value: string; label: string }[];
+}) {
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const selecionado = opcoes.find((o) => o.value === value);
+  const texto = selecionado?.label ?? placeholder;
+
+  useEffect(() => {
+    if (!aberto) return;
+    const fechar = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setAberto(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAberto(false);
+    };
+    document.addEventListener("mousedown", fechar);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", fechar);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [aberto]);
+
+  return (
+    <div ref={ref} className="relative min-w-0 w-full max-w-full">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={aberto}
+        title={selecionado?.label}
+        onClick={() => setAberto((a) => !a)}
+        className={[
+          inputCls,
+          "flex max-w-full items-center justify-between gap-2 text-left",
+        ].join(" ")}
+      >
+        <span
+          className={[
+            "min-w-0 flex-1 truncate",
+            selecionado ? "text-ink" : "text-ink-2",
+          ].join(" ")}
+        >
+          {texto}
+        </span>
+        <span aria-hidden="true" className="flex-none text-[12px] text-ink-2">
+          ▾
+        </span>
+      </button>
+      {aberto && (
+        <ul
+          role="listbox"
+          className="absolute bottom-full left-0 right-0 z-20 mb-1 max-h-56 overflow-y-auto rounded-[11px] border-[1.5px] border-black/[.13] bg-white py-1 shadow-[0_8px_24px_rgba(0,0,0,.12)]"
+        >
+          <li role="option" aria-selected={!value}>
+            <button
+              type="button"
+              title={placeholder}
+              onClick={() => {
+                onChange("");
+                setAberto(false);
+              }}
+              className={[
+                "block w-full truncate px-[14px] py-2.5 text-left text-[14.5px] transition-colors hover:bg-subtle",
+                !value ? "font-bold text-azul" : "text-ink-2",
+              ].join(" ")}
+            >
+              {placeholder}
+            </button>
+          </li>
+          {opcoes.map((o) => {
+            const ativo = o.value === value;
+            return (
+              <li key={o.value} role="option" aria-selected={ativo}>
+                <button
+                  type="button"
+                  title={o.label}
+                  onClick={() => {
+                    onChange(o.value);
+                    setAberto(false);
+                  }}
+                  className={[
+                    "block w-full truncate px-[14px] py-2.5 text-left text-[14.5px] transition-colors hover:bg-subtle",
+                    ativo ? "font-bold text-azul" : "text-ink",
+                  ].join(" ")}
+                >
+                  {o.label}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

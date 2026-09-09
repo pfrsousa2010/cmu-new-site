@@ -8,6 +8,10 @@ interface ModalProps {
   width?: number;
   /** Classes extras no painel interno */
   className?: string;
+  /** Cabeçalho fixo (não rola com o conteúdo). */
+  header?: ReactNode;
+  /** Rodapé fixo (não rola com o conteúdo). */
+  footer?: ReactNode;
 }
 
 /** Overlay clicável fecha; clique interno não propaga. Esc fecha. */
@@ -17,6 +21,8 @@ export default function Modal({
   children,
   width = 620,
   className = "",
+  header,
+  footer,
 }: ModalProps) {
   useEffect(() => {
     if (!open) return;
@@ -31,6 +37,8 @@ export default function Modal({
 
   if (!open) return null;
 
+  const estruturado = header != null || footer != null;
+
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(20,25,30,.5)] p-6"
@@ -38,13 +46,40 @@ export default function Modal({
     >
       <div
         className={[
-          "max-h-[90vh] w-full rounded-modal bg-white shadow-modal",
-          className || "overflow-auto p-8",
-        ].join(" ")}
+          "flex max-h-[90vh] w-full flex-col rounded-modal bg-white shadow-modal",
+          estruturado
+            ? "overflow-hidden"
+            : className || "overflow-auto p-8",
+          estruturado && className ? className : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         style={{ maxWidth: width }}
         onClick={(e) => e.stopPropagation()}
       >
-        {children}
+        {estruturado ? (
+          <>
+            {header != null && (
+              <div className="flex-none px-8 pb-3 pt-8">{header}</div>
+            )}
+            <div
+              className={[
+                "min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-8",
+                header != null ? "pt-1" : "pt-8",
+                footer != null ? "pb-5" : "pb-8",
+              ].join(" ")}
+            >
+              {children}
+            </div>
+            {footer != null && (
+              <div className="flex-none border-t border-black/[.06] bg-white px-8 py-4">
+                {footer}
+              </div>
+            )}
+          </>
+        ) : (
+          children
+        )}
       </div>
     </div>
   );
