@@ -78,8 +78,7 @@ de escrita (conforme o handoff).
 ### Site público (`/`)
 Home, Sobre nós, Projetos, **Cursos** (dados ao vivo da tabela `cursos`),
 Eventos, Parceiros (logos vindos do painel), Editais, Transparência, Doar e
-Contato (formulário com estado de sucesso; envio real é TODO — sugerido edge
-function/serviço de e-mail).
+Contato (formulário abre o WhatsApp do clube com a mensagem pré-preenchida).
 
 Regra de status dos cursos: `fim` no passado → **Finalizado** (excluído do
 site); senão janela `inscricoes_inicio`/`inscricoes_fim` vigente →
@@ -115,7 +114,6 @@ site não sai pela tela do gestor.
 ## Placeholders a substituir pelo cliente
 - Fotos de referência do Wix (`src/lib/refImages.ts`) — baixar e re-hospedar no
   Storage.
-- Envio do formulário de contato.
 
 PIX, dados bancários (`src/pages/Doar.tsx`) e logos dos parceiros já são os
 reais. Os logos são gerenciados pelo painel, em **Logos dos parceiros**.

@@ -176,8 +176,8 @@ abriria uma barra de navegador por cima do app.
 
 ## Pendências conhecidas (não são bugs)
 
-- Formulário de contato não envia nada — só mostra estado de sucesso
-  ([src/pages/Contato.tsx:42](src/pages/Contato.tsx:42)).
+- Formulário de contato abre o WhatsApp do clube com a mensagem pré-preenchida
+ ([src/lib/contato.ts](src/lib/contato.ts) / [Contato.tsx](src/pages/Contato.tsx)).
 - PIX, dados bancários e logos dos parceiros já são os reais. O QR do PIX é
   [public/pix-qrcode.png](public/pix-qrcode.png), extraído do PDF do banco; se
   a chave mudar, o QR precisa ser trocado junto — um não valida o outro.

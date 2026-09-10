@@ -261,9 +261,9 @@ Assumidos e documentados, não descuidos:
 - **Escrita liberada a qualquer autenticado** no RLS (ver §5).
 - **Imagens hotlinkadas do Wix** em [refImages.ts](src/lib/refImages.ts) —
   precisam ser baixadas e re-hospedadas antes do go-live.
-- **Formulário de contato não envia**
-  ([Contato.tsx:42](src/pages/Contato.tsx:42)); o caminho previsto é edge
-  function ou serviço de e-mail.
+- **Formulário de contato via WhatsApp**
+  ([src/lib/contato.ts](src/lib/contato.ts)): abre `wa.me` com nome, contato e
+  mensagem pré-preenchidos; o visitante confirma o envio no app.
 - **Placeholders do cliente**: PIX/dados bancários em
   [Doar.tsx](src/pages/Doar.tsx), logos em
   [Parceiros.tsx](src/pages/Parceiros.tsx).
