@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { urlWhatsAppContato } from "@/lib/contato";
 
 const CARDS = [
   {
@@ -39,7 +40,8 @@ export default function Contato() {
 
   const enviar = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO (cliente): enviar via função edge do Supabase ou serviço de e-mail.
+    const url = urlWhatsAppContato(form);
+    window.open(url, "_blank", "noopener,noreferrer");
     setEnviado(true);
   };
 
@@ -70,16 +72,31 @@ export default function Contato() {
             <div className="px-5 py-[60px] text-center">
               <div className="mb-3 text-[44px]">✓</div>
               <div className="font-display text-[22px] font-extrabold text-verde">
-                Mensagem enviada!
+                WhatsApp aberto!
               </div>
               <div className="mt-2 text-[14.5px] text-ink-2">
-                Retornaremos em breve. Obrigado pelo contato.
+                Confirme o envio da mensagem no WhatsApp. Se a janela não
+                abriu, verifique se o bloqueador de pop-ups está ativo.
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  window.open(
+                    urlWhatsAppContato(form),
+                    "_blank",
+                    "noopener,noreferrer"
+                  );
+                }}
+                className="mt-5 rounded-xl bg-azul px-4 py-[11px] font-display text-[15px] font-extrabold text-white transition-colors hover:bg-azul-hover"
+              >
+                Abrir WhatsApp de novo
+              </button>
             </div>
           ) : (
             <form onSubmit={enviar} className="grid gap-3.5">
               <input
                 required
+                name="nome"
                 placeholder="Seu nome"
                 value={form.nome}
                 onChange={(e) => setForm({ ...form, nome: e.target.value })}
@@ -87,6 +104,7 @@ export default function Contato() {
               />
               <input
                 required
+                name="contato"
                 placeholder="Seu e-mail ou telefone"
                 value={form.contato}
                 onChange={(e) => setForm({ ...form, contato: e.target.value })}
@@ -94,6 +112,7 @@ export default function Contato() {
               />
               <textarea
                 required
+                name="mensagem"
                 placeholder="Sua mensagem"
                 rows={5}
                 value={form.mensagem}
@@ -104,7 +123,7 @@ export default function Contato() {
                 type="submit"
                 className="rounded-xl bg-azul px-3 py-[13px] text-center font-display text-base font-extrabold text-white transition-colors hover:bg-azul-hover"
               >
-                Enviar mensagem
+                Enviar pelo WhatsApp
               </button>
             </form>
           )}
