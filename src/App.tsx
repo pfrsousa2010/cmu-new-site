@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import ScrollToTop from "./components/ScrollToTop";
+import AvisoAtualizacao from "./components/AvisoAtualizacao";
 import { ToastProvider } from "./components/Toast";
 import { AuthProvider } from "./hooks/useAuth";
 import PublicLayout from "./components/PublicLayout";
@@ -31,6 +32,7 @@ export default function App() {
   return (
     <AuthProvider>
       <ToastProvider>
+        <AvisoAtualizacao />
         <ScrollToTop />
         <Routes>
           {/* Site público */}

@@ -16,20 +16,134 @@
 
 const CAMINHO = "/admin/sw.js";
 const ESCOPO = "/admin/";
+/** SPA não navega: sem isso o Chrome pode levar até 24h para achar o sw.js novo. */
+const MS_CHECAGEM = 5 * 60 * 1000;
 
 export function registrarServiceWorker(): void {
-  if (!import.meta.env.PROD) return;
-  if (!("serviceWorker" in navigator)) return;
-  if (!window.location.pathname.startsWith("/admin")) return;
+  if (!podeRegistrar()) return;
 
   // Depois do load: o registro concorreria com o primeiro carregamento da
   // tela, e ele não tem pressa nenhuma.
   window.addEventListener("load", () => {
-    void navigator.serviceWorker.register(CAMINHO, { scope: ESCOPO }).catch(() => {
-      // Falhar aqui não pode atrapalhar quem só quer usar o painel: sem
-      // service worker, ele funciona igual — só não instala.
-    });
+    void garantirRegistro();
   });
+}
+
+function podeRegistrar(): boolean {
+  return (
+    import.meta.env.PROD &&
+    "serviceWorker" in navigator &&
+    window.location.pathname.startsWith("/admin")
+  );
+}
+
+let registroEmCurso: Promise<ServiceWorkerRegistration | null> | null = null;
+
+function garantirRegistro(): Promise<ServiceWorkerRegistration | null> {
+  if (!podeRegistrar()) return Promise.resolve(null);
+  if (!registroEmCurso) {
+    registroEmCurso = navigator.serviceWorker
+      .register(CAMINHO, { scope: ESCOPO })
+      .then((registration) => {
+        acompanhar(registration);
+        agendarChecagens(registration);
+        return registration;
+      })
+      .catch(() => {
+        registroEmCurso = null;
+        // Falhar aqui não pode atrapalhar quem só quer usar o painel: sem
+        // service worker, ele funciona igual — só não instala.
+        return null;
+      });
+  }
+  return registroEmCurso;
+}
+
+let acompanhando: ServiceWorkerRegistration | null = null;
+
+function acompanhar(registration: ServiceWorkerRegistration): void {
+  if (acompanhando === registration) {
+    sinalizarSeHouver(registration);
+    return;
+  }
+  acompanhando = registration;
+
+  const ouvirInstalacao = (worker: ServiceWorker) => {
+    worker.addEventListener("statechange", () => {
+      if (worker.state === "installed") sinalizarSeHouver(registration);
+    });
+  };
+
+  registration.addEventListener("updatefound", () => {
+    const installing = registration.installing;
+    if (installing) ouvirInstalacao(installing);
+  });
+  if (registration.installing) ouvirInstalacao(registration.installing);
+
+  sinalizarSeHouver(registration);
+}
+
+let checagensLigadas = false;
+
+function agendarChecagens(registration: ServiceWorkerRegistration): void {
+  if (checagensLigadas) return;
+  checagensLigadas = true;
+
+  const checar = () => {
+    void registration.update();
+  };
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") checar();
+  });
+  window.setInterval(checar, MS_CHECAGEM);
+}
+
+type AplicarAtualizacao = () => void;
+type Ouvidor = (aplicar: AplicarAtualizacao) => void;
+
+const ouvidores = new Set<Ouvidor>();
+let aplicar: AplicarAtualizacao | null = null;
+let recarregando = false;
+
+/**
+ * Avisa quando há um service worker novo em espera. Só dispara se a aba
+ * já tem um controller — a primeira instalação do PWA não é "versão nova".
+ *
+ * A função entregue recarrega o painel depois de pedir skipWaiting. Quem
+ * já está no deploy atual nunca entra aqui: não há worker esperando.
+ */
+export function observarAtualizacao(aoDisponivel: Ouvidor): () => void {
+  ouvidores.add(aoDisponivel);
+  if (aplicar) aoDisponivel(aplicar);
+  void garantirRegistro();
+  return () => {
+    ouvidores.delete(aoDisponivel);
+  };
+}
+
+function sinalizarSeHouver(registration: ServiceWorkerRegistration): void {
+  const worker = registration.waiting;
+  // Sem controller é a primeira instalação, não uma atualização.
+  if (!worker || !navigator.serviceWorker.controller) return;
+  aplicar = () => aplicarAtualizacao(worker);
+  for (const ouvidor of ouvidores) ouvidor(aplicar);
+}
+
+function aplicarAtualizacao(worker: ServiceWorker): void {
+  if (recarregando) return;
+  recarregando = true;
+
+  const recarregar = () => {
+    window.location.reload();
+  };
+
+  navigator.serviceWorker.addEventListener("controllerchange", recarregar);
+
+  if (worker.state === "redundant") {
+    recarregar();
+    return;
+  }
+  worker.postMessage({ type: "SKIP_WAITING" });
 }
 
 /** true quando o painel está aberto como aplicativo, e não numa aba. */

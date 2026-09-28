@@ -110,17 +110,23 @@ self.addEventListener('install', (evento) => {
 
 self.addEventListener('activate', (evento) => {
   evento.waitUntil(
-    caches.keys().then((chaves) =>
-      Promise.all(chaves.filter((chave) => chave !== CACHE).map((chave) => caches.delete(chave)))
-    )
+    caches.keys()
+      .then((chaves) =>
+        Promise.all(chaves.filter((chave) => chave !== CACHE).map((chave) => caches.delete(chave)))
+      )
+      .then(() => self.clients.claim())
   );
 });
 
+self.addEventListener('message', (evento) => {
+  if (evento.data && evento.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 /*
- * Nao ha skipWaiting de proposito: a versao nova assume quando o app e
- * fechado e reaberto. Trocar os arquivos por baixo de uma tela em uso
- * pode quebra-la no meio de um cadastro, e perguntar "deseja atualizar?"
- * e uma decisao que quem usa o painel nao tem como tomar.
+ * skipWaiting nao e automatico: trocar os arquivos no meio de um cadastro
+ * quebraria a tela. O painel manda SKIP_WAITING quando a pessoa clica em
+ * Atualizar no aviso de versao nova; clients.claim() faz o SW novo assumir
+ * a aba aberta antes do reload.
  */
 
 const SEM_CONEXAO = \`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
