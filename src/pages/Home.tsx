@@ -175,6 +175,21 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Vídeo institucional: sem áudio e em loop, então roda sozinho (os
+          navegadores só liberam autoplay com `muted` + `playsInline`). */}
+      <section className="mx-auto max-w-container px-6 pb-6">
+        <video
+          className="aspect-video w-full rounded-3xl bg-ink object-cover shadow-card-hover"
+          src="/video/institucional.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-label="Vídeo institucional do Clube das Mães Unidas"
+        />
+      </section>
+
       {/* Pilares */}
       <section className="mx-auto grid max-w-container grid-cols-1 gap-5 px-6 pb-14 pt-8 md:grid-cols-3">
         {[
