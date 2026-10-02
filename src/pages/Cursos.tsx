@@ -16,6 +16,7 @@ import {
   PERIODOS_LABEL,
   PERIODO_CLASSES,
   STATUS_META,
+  avisoInscricaoFechada,
   type CursoRow,
   type Periodo,
   type StatusCurso,
@@ -274,6 +275,8 @@ function CursoCard({
   const limite = limiteInscricoes(curso);
   const restantes = vagasRestantes(curso);
   const listaEspera = emListaEspera(curso);
+  const avisoInscricao =
+    st === "planejado" ? avisoInscricaoFechada(curso) : null;
   const unidade = abreviarUnidade(curso.unidades?.nome);
   const temImagem = Boolean(curso.imagem_url);
   const img = curso.imagem_url || CURSO_FALLBACK;
@@ -367,6 +370,10 @@ function CursoCard({
                 {listaEspera ? "Entrar na lista de espera" : "Inscreva-se"}
               </button>
             </>
+          ) : avisoInscricao ? (
+            <div className="text-[12.5px] font-bold text-ink-mid">
+              {avisoInscricao}
+            </div>
           ) : null}
         </div>
       </div>

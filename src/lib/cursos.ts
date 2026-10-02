@@ -1,4 +1,5 @@
 import { supabase, BUCKET_CURSOS, publicUrl } from "./supabase";
+import { avaliarDisponibilidade } from "./inscricoes";
 
 export type Periodo = "manha" | "tarde" | "noite";
 export type DiaSemana = "seg" | "ter" | "qua" | "qui" | "sex" | "sab" | "dom";
@@ -301,16 +302,27 @@ export function hojeISO(): string {
 }
 
 /**
- * Inscrições abertas: agora está entre inscricoes_inicio e inscricoes_fim
- * (timestamps com horário). Depois de inscricoes_fim, deixa de ser "abertas".
+ * Inscrições abertas: mesma regra do formulário (`avaliarDisponibilidade`,
+ * espelho do SGE). Basta uma das pontas da janela: só início => aberta desde
+ * então; só fim => aberta até lá. Sem nenhuma das duas, fechada.
  */
 export function inscricoesAbertas(c: CursoRow): boolean {
-  if (!c.inscricoes_inicio || !c.inscricoes_fim) return false;
-  const agora = Date.now();
-  const ini = new Date(c.inscricoes_inicio).getTime();
-  const fim = new Date(c.inscricoes_fim).getTime();
-  if (Number.isNaN(ini) || Number.isNaN(fim)) return false;
-  return agora >= ini && agora <= fim;
+  return avaliarDisponibilidade(c.inscricoes_inicio, c.inscricoes_fim, null, 0)
+    .disponivel;
+}
+
+/**
+ * Aviso do card para curso "Em breve" que não está com inscrição aberta:
+ * a janela ainda não começou ou já encerrou. null quando não há janela
+ * configurada (ou ela está aberta).
+ */
+export function avisoInscricaoFechada(c: CursoRow): string | null {
+  const d = avaliarDisponibilidade(c.inscricoes_inicio, c.inscricoes_fim, null, 0);
+  if (d.disponivel) return null;
+  if (d.motivo === "nao_iniciou") return "Inscrições começam em breve";
+  if (d.motivo === "encerrado")
+    return "Inscrições encerradas — início da turma em breve";
+  return null;
 }
 
 /**
