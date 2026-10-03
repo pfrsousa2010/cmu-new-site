@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+# Painel administrativo: fica de fora da busca (o HTML dele também traz noindex).
+Disallow: /admin
+
+Sitemap: https://clubedasmaesunidas.org.br/sitemap.xml

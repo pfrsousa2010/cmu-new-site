@@ -38,6 +38,7 @@ import {
   formatTelefone,
   type DadosInscricao,
 } from "@/lib/inscricoes";
+import { setTituloPagina } from "@/lib/seo";
 
 /**
  * Formulário de inscrição no próprio site (antes o botão abria o formulário
@@ -113,6 +114,7 @@ export default function Inscricao() {
       if (!ativo) return;
       setCurso(data);
       setCarregando(false);
+      if (data) setTituloPagina(`Inscrição: ${data.titulo}`);
     });
     return () => {
       ativo = false;

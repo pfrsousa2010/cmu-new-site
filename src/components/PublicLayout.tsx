@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
+import Seo from "@/components/Seo";
 
 const WHATSAPP_URL =
   "https://wa.me/554333256488?text=Ol%C3%A1!%20Vim%20pelo%20site%20do%20Clube%20das%20M%C3%A3es%20Unidas.";
@@ -30,6 +31,7 @@ export default function PublicLayout() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <Seo />
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-black/[.07] bg-white/[.94] backdrop-blur-[10px]">
         <div className="mx-auto flex h-[72px] max-w-container items-center gap-6 px-6">
