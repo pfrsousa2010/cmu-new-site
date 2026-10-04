@@ -1,5 +1,5 @@
 import { supabase, BUCKET_CURSOS, publicUrl } from "./supabase";
-import { avaliarDisponibilidade } from "./inscricoes";
+import { avaliarDisponibilidade, contarInscritos } from "./inscricoes";
 
 export type Periodo = "manha" | "tarde" | "noite";
 export type DiaSemana = "seg" | "ter" | "qua" | "qui" | "sex" | "sab" | "dom";
@@ -442,6 +442,15 @@ export function fmtDiaMes(iso: string): string {
  */
 let cursosInflight: Promise<CursoRow[]> | null = null;
 
+/** Ocupação do teto para exibição: em falha, loga e devolve 0 (leitura não quebra a página). */
+async function ocupacaoDoCurso(cursoId: string): Promise<number> {
+  try {
+    return await contarInscritos(cursoId);
+  } catch {
+    return 0;
+  }
+}
+
 export function fetchCursos(): Promise<CursoRow[]> {
   if (cursosInflight) return cursosInflight;
 
@@ -471,28 +480,15 @@ export function fetchCursos(): Promise<CursoRow[]> {
 
     if (rows.length === 0) return rows;
 
-    const ids = rows.map((c) => c.id);
-    const { data: inscritos, error: inscError } = await supabase
-      .from("inscricoes")
-      .select("curso_id")
-      .eq("status", "inscrito")
-      .in("curso_id", ids);
-
-    if (inscError) {
-      console.error("Erro ao contar inscritos:", inscError.message);
-      return rows.map((c) => ({ ...c, qtd_inscritos: 0 }));
-    }
-
-    const counts = new Map<string, number>();
-    for (const row of inscritos ?? []) {
-      const id = (row as { curso_id: string }).curso_id;
-      counts.set(id, (counts.get(id) ?? 0) + 1);
-    }
-
-    return rows.map((c) => ({
-      ...c,
-      qtd_inscritos: counts.get(c.id) ?? 0,
-    }));
+    // Uma RPC por curso (a anon não lê `inscricoes`; ver `contarInscritos`).
+    // Só os cursos com teto exibem ocupação, então os demais nem consultam.
+    return Promise.all(
+      rows.map(async (c) => ({
+        ...c,
+        qtd_inscritos:
+          limiteInscricoes(c) == null ? 0 : await ocupacaoDoCurso(c.id),
+      }))
+    );
   })().finally(() => {
     cursosInflight = null;
   });
@@ -643,12 +639,7 @@ export async function fetchCursoDivulgacao(
       .from("curso_conteudos")
       .select("conteudo_id, conteudos(nome)")
       .eq("curso_id", cursoId),
-    // Mesmo critério do SGE para medir a ocupação do teto de inscrições.
-    supabase
-      .from("inscricoes")
-      .select("id", { count: "exact", head: true })
-      .eq("curso_id", cursoId)
-      .eq("status", "inscrito"),
+    ocupacaoDoCurso(cursoId).then((count) => ({ count })),
   ]);
 
   if (conteudosError) {

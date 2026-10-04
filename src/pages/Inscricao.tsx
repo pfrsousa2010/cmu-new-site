@@ -28,7 +28,7 @@ import {
   apenasDigitos,
   avaliarDisponibilidade,
   buscarCep,
-  buscarInscricaoDoCpf,
+  jaInscritoNoCurso,
   cpfValido,
   criarInscricao,
   emailValido,
@@ -213,8 +213,7 @@ export default function Inscricao() {
     setCpfErro(null);
     setVerificandoCpf(true);
     try {
-      const existente = await buscarInscricaoDoCpf(limpo, cursoId);
-      if (existente) {
+      if (await jaInscritoNoCurso(limpo, cursoId)) {
         setInscricaoDuplicada(true);
         setFormularioLiberado(false);
         return;

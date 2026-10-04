@@ -309,47 +309,48 @@ export async function buscarCep(cep: string): Promise<EnderecoCep | null> {
 // Consultas
 // ---------------------------------------------------------------------------
 
+// A leitura direta de `inscricoes` é fechada para a chave anon (migração
+// `20260903130000_fechar_leitura_publica_inscricoes` do SGE): um select ali
+// não dá erro, só devolve vazio. Por isso as checagens públicas passam pelas
+// RPCs `security definer` do SGE, que devolvem só um booleano ou um número.
+
 /**
- * Já existe inscrição deste CPF neste curso? O índice único do SGE
- * (`idx_inscricoes_unique_cpf_curso`) ignora canceladas, então uma inscrição
- * cancelada não impede nova tentativa — a checagem aqui só antecipa o erro.
+ * Já existe inscrição deste CPF neste curso? Booleano, não a inscrição: quem
+ * digita um CPF não pode receber de volta o cadastro de outra pessoa.
  */
-export async function buscarInscricaoDoCpf(
+export async function jaInscritoNoCurso(
   cpf: string,
   cursoId: string
-): Promise<{ id: string; status: string } | null> {
+): Promise<boolean> {
   const limpo = apenasDigitos(cpf);
-  if (limpo.length !== 11) return null;
+  if (limpo.length !== 11) return false;
 
-  const { data, error } = await supabase
-    .from("inscricoes")
-    .select("id, status")
-    .eq("cpf", limpo)
-    .eq("curso_id", cursoId)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("inscricao_publica_ja_inscrito", {
+    p_curso_id: cursoId,
+    p_cpf: limpo,
+  });
 
   if (error) {
     console.error("Erro ao verificar CPF:", error.message);
     throw new Error("Não foi possível verificar o CPF. Tente novamente.");
   }
 
-  return data ?? null;
+  return data === true;
 }
 
 /** Inscritos que ocupam o teto (`status = 'inscrito'`), critério do SGE. */
 export async function contarInscritos(cursoId: string): Promise<number> {
-  const { count, error } = await supabase
-    .from("inscricoes")
-    .select("id", { count: "exact", head: true })
-    .eq("curso_id", cursoId)
-    .eq("status", "inscrito");
+  const { data, error } = await supabase.rpc(
+    "inscricao_publica_vagas_ocupadas",
+    { p_curso_id: cursoId }
+  );
 
   if (error) {
     console.error("Erro ao contar inscritos:", error.message);
     throw new Error("Não foi possível confirmar as vagas. Tente novamente.");
   }
 
-  return count ?? 0;
+  return Number(data ?? 0);
 }
 
 // ---------------------------------------------------------------------------
