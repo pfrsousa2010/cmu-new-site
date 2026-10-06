@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import ScrollToTop from "./components/ScrollToTop";
 import AvisoAtualizacao from "./components/AvisoAtualizacao";
 import { ToastProvider } from "./components/Toast";
@@ -9,6 +9,7 @@ import Home from "./pages/Home";
 import Sobre from "./pages/Sobre";
 import Projetos from "./pages/Projetos";
 import Cursos from "./pages/Cursos";
+import Atividades from "./pages/Atividades";
 import Inscricao from "./pages/Inscricao";
 import Eventos from "./pages/Eventos";
 import Parceiros from "./pages/Parceiros";
@@ -28,6 +29,16 @@ import AdminHero from "./pages/admin/AdminHero";
 import AdminParceiros from "./pages/admin/AdminParceiros";
 import AdminDepoimentos from "./pages/admin/AdminDepoimentos";
 
+/** `/cursos` virou `/atividades/cursos`; a busca (`?busca=`) vai junto. */
+function RedirecionarCursos() {
+  return <Navigate to={`/atividades/cursos${window.location.search}`} replace />;
+}
+
+function RedirecionarInscricaoCurso() {
+  const { cursoId } = useParams<{ cursoId: string }>();
+  return <Navigate to={`/atividades/cursos/${cursoId}/inscricao`} replace />;
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -40,8 +51,12 @@ export default function App() {
             <Route index element={<Home />} />
             <Route path="sobre" element={<Sobre />} />
             <Route path="projetos" element={<Projetos />} />
-            <Route path="cursos" element={<Cursos />} />
-            <Route path="cursos/:cursoId/inscricao" element={<Inscricao />} />
+            <Route path="atividades" element={<Atividades />} />
+            <Route path="atividades/:slug" element={<Cursos />} />
+            <Route path="atividades/:slug/:cursoId/inscricao" element={<Inscricao />} />
+            {/* Endereços antigos (Home, links já distribuídos, buscadores). */}
+            <Route path="cursos" element={<RedirecionarCursos />} />
+            <Route path="cursos/:cursoId/inscricao" element={<RedirecionarInscricaoCurso />} />
             <Route path="eventos" element={<Eventos />} />
             <Route path="parceiros" element={<Parceiros />} />
             <Route path="editais" element={<Editais />} />

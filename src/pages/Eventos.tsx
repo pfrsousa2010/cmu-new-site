@@ -95,7 +95,7 @@ export default function Eventos() {
   return (
     <div className="mx-auto max-w-container px-6 pb-20 pt-14">
       <h1 className="mb-3 font-display text-[42px] font-black">
-        Eventos e Fotos
+        Agenda
       </h1>
       <p className="m-0 mb-7 text-[17px] text-ink-2">
         Agenda de atividades e álbuns com os momentos da nossa comunidade.

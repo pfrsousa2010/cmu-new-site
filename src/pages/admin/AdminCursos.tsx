@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ROTULO_TIPO, type TipoAtividade } from "@/lib/atividades";
 import { useSearchParams } from "react-router-dom";
 import Modal from "@/components/Modal";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { CURSO_FALLBACK } from "@/lib/refImages";
 import {
-  fetchCursosAdmin,
+  fetchAtividadesAdmin,
   setVisivelSite,
   setCursoImagem,
   removerCursoImagem,
@@ -44,6 +45,8 @@ const FILTROS: { key: Filtro; label: string }[] = [
 export default function AdminCursos() {
   const { toast } = useToast();
   const [params, setParams] = useSearchParams();
+  /** Cursos, eventos ou oficinas do SGE: mesma tela, mesma chave e mesma imagem. */
+  const [tipo, setTipo] = useState<TipoAtividade>("curso");
   const [cursos, setCursos] = useState<CursoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<Record<string, boolean>>({});
@@ -67,11 +70,17 @@ export default function AdminCursos() {
   const temUnsplash = unsplashConfigured();
 
   useEffect(() => {
-    fetchCursosAdmin().then((data) => {
+    let ativo = true;
+    setLoading(true);
+    fetchAtividadesAdmin(tipo).then((data) => {
+      if (!ativo) return;
       setCursos(data);
       setLoading(false);
     });
-  }, []);
+    return () => {
+      ativo = false;
+    };
+  }, [tipo]);
 
   // Entrada pelo card "Cursos sem foto" da visão geral. O parâmetro é
   // consumido e apagado: daqui em diante quem manda é o botão da tela.
@@ -164,12 +173,13 @@ export default function AdminCursos() {
       const url = await setCursoImagem(
         cursoImagem.id,
         file,
-        cursoImagem.imagem_url
+        cursoImagem.imagem_url,
+        { tipo }
       );
       setCursos((cs) =>
         cs.map((x) => (x.id === cursoImagem.id ? { ...x, imagem_url: url } : x))
       );
-      toast("Imagem do curso atualizada");
+      toast("Imagem atualizada");
       fecharModalImagem();
     } catch (err) {
       toast(err instanceof Error ? err.message : "Erro ao enviar imagem");
@@ -221,7 +231,7 @@ export default function AdminCursos() {
         cursoImagem.id,
         file,
         cursoImagem.imagem_url,
-        { maxBytes: 8 * 1024 * 1024 }
+        { maxBytes: 8 * 1024 * 1024, tipo }
       );
       setCursos((cs) =>
         cs.map((x) => (x.id === cursoImagem.id ? { ...x, imagem_url: url } : x))
@@ -262,8 +272,8 @@ export default function AdminCursos() {
       cs.map((x) => (x.id === c.id ? { ...x, visivel_site: novo } : x))
     );
     try {
-      await setVisivelSite(c.id, novo);
-      toast(novo ? "Curso visível no site" : "Curso oculto do site");
+      await setVisivelSite(c.id, novo, tipo);
+      toast(novo ? "Visível no site" : "Oculto do site");
     } catch (err) {
       setCursos((cs) =>
         cs.map((x) => (x.id === c.id ? { ...x, visivel_site: !novo } : x))
@@ -282,7 +292,7 @@ export default function AdminCursos() {
     <div>
       <div className="mb-2 flex items-start justify-between gap-3 sm:items-center">
         <h1 className="m-0 min-w-0 flex-1 font-display text-[28px] font-black">
-          Cursos
+          Atividades
         </h1>
         <div className="flex flex-none items-center gap-2 rounded-full bg-verde/10 px-3 py-2 text-[12.5px] font-bold text-verde-dark sm:px-4 sm:text-[13px]">
           <span className="relative flex h-2.5 w-2.5 items-center justify-center">
@@ -293,8 +303,30 @@ export default function AdminCursos() {
           <span className="hidden sm:inline">Sincronizado com o SGE - CMU</span>
         </div>
       </div>
+      <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Tipo de atividade">
+        {(["curso", "evento", "oficina"] as TipoAtividade[]).map((t) => (
+          <button
+            key={t}
+            type="button"
+            role="tab"
+            aria-selected={tipo === t}
+            onClick={() => {
+              setTipo(t);
+              setBusca("");
+            }}
+            className={[
+              "rounded-full border-[1.5px] px-[18px] py-[9px] text-[13.5px] font-bold transition-colors",
+              tipo === t
+                ? "border-azul bg-azul text-white"
+                : "border-black/[.12] bg-white text-ink-mid hover:border-azul",
+            ].join(" ")}
+          >
+            {ROTULO_TIPO[t].plural}
+          </button>
+        ))}
+      </div>
       <p className="m-0 mb-5 max-w-[640px] text-[14.5px] leading-[1.55] text-ink-2">
-        Os cursos são gerenciados no Sistema de Gestão de Educacional (SGE - CMU) e aparecem automaticamente no
+        Cursos, eventos e oficinas são gerenciados no Sistema de Gestão de Educacional (SGE - CMU) e aparecem automaticamente no
         site (sem percursos e sem planejados). Aqui você
         controla <b>imagem do card</b> e <b>visibilidade</b>. As inscrições
         abrem e fecham pelo período configurado no próprio SGE. Sem imagem, o

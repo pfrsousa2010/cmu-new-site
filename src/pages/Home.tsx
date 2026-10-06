@@ -142,7 +142,7 @@ export default function Home() {
               conteúdo. */}
           <div className="flex gap-3.5">
             <Link
-              to="/cursos"
+              to="/atividades/cursos"
               className="flex-1 whitespace-nowrap rounded-full bg-azul px-5 py-3.5 text-center font-display text-[15px] font-extrabold text-white shadow-[0_4px_14px_rgba(46,111,183,.3)] transition-colors hover:bg-azul-hover hover:text-white sm:flex-none sm:px-[30px] sm:text-base"
             >
               Ver cursos
@@ -201,14 +201,14 @@ export default function Home() {
               "Contribuir para a construção de uma sociedade melhor, minimizando vulnerabilidades sociais e promovendo o protagonismo das pessoas atendidas.",
           },
           {
-            to: "/eventos",
+            to: "/atividades",
             border: "border-t-azul",
-            titulo: "Agenda",
+            titulo: "Atividades",
             texto:
-              "Acompanhe nossa agenda com os próximos eventos, oficinas e cursos abertos à comunidade.",
+              "Veja os cursos, eventos e oficinas abertos à comunidade e inscreva-se pelo site.",
           },
           {
-            to: "/cursos",
+            to: "/atividades/cursos",
             border: "border-t-laranja",
             titulo: "Cursos",
             texto:
@@ -238,7 +238,7 @@ export default function Home() {
               Fique por dentro
             </h2>
             <Link
-              to="/cursos"
+              to="/atividades/cursos"
               className="flex-none text-[15px] font-bold text-azul hover:text-laranja"
             >
               Ver todos os cursos →
@@ -250,7 +250,7 @@ export default function Home() {
             <p className="m-0 text-ink-2">
               Nenhum curso em destaque no momento.{" "}
               <Link
-                to="/cursos"
+                to="/atividades/cursos"
                 className="font-bold text-azul hover:text-laranja"
               >
                 Ver cursos
@@ -272,7 +272,7 @@ export default function Home() {
                 return (
                   <Link
                     key={c.id}
-                    to={`/cursos?busca=${encodeURIComponent(c.titulo)}`}
+                    to={`/atividades/cursos?busca=${encodeURIComponent(c.titulo)}`}
                     className="overflow-hidden rounded-[18px] border border-black/[.07] bg-white transition-shadow hover:shadow-card-hover-lg"
                   >
                     <div

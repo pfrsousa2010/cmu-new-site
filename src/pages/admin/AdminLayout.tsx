@@ -9,7 +9,7 @@ const MENU = [
   { to: "/admin", label: "Visão geral", icone: "⌂", end: true },
   { to: "/admin/eventos", label: "Eventos e fotos", icone: "📅" },
   { to: "/admin/arquivos", label: "Editais e arquivos", icone: "📄" },
-  { to: "/admin/cursos", label: "Cursos (SGE)", icone: "🎓" },
+  { to: "/admin/cursos", label: "Atividades (SGE)", icone: "🎓" },
   { to: "/admin/hero", label: "Fotos da página inicial", icone: "🖼" },
   { to: "/admin/parceiros", label: "Logos dos parceiros", icone: "🤝" },
   { to: "/admin/depoimentos", label: "Depoimentos", icone: "💬" },

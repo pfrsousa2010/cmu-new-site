@@ -1,5 +1,14 @@
 import { supabase, BUCKET_CURSOS, publicUrl } from "./supabase";
 import { avaliarDisponibilidade, contarInscritos } from "./inscricoes";
+import {
+  COLUNAS_EVENTO,
+  COLUNAS_OFICINA,
+  FK_TIPO,
+  TABELA_TIPO,
+  comoCursoRow,
+  contarInscritosAtividade,
+  type TipoAtividade,
+} from "./atividades";
 
 export type Periodo = "manha" | "tarde" | "noite";
 export type DiaSemana = "seg" | "ter" | "qua" | "qui" | "sex" | "sab" | "dom";
@@ -7,6 +16,10 @@ export type DiaSemana = "seg" | "ter" | "qua" | "qui" | "sex" | "sab" | "dom";
 /** Linha da tabela `cursos` (apenas os campos usados pelo site público/admin). */
 export interface CursoRow {
   id: string;
+  /** Curso, evento ou oficina (ver `atividades.ts`). Ausente = curso. */
+  tipo?: TipoAtividade;
+  /** Evento fora das unidades do CMU: endereço escrito à mão. */
+  local_manual?: string | null;
   titulo: string;
   professor: string;
   inicio: string;
@@ -57,6 +70,8 @@ export interface PreRequisito {
 
 /** Dados do material de divulgação (modal de inscrição). */
 export interface CursoDivulgacao {
+  /** Curso, evento ou oficina. Evento/oficina não têm atendimento (seleção). */
+  tipo: TipoAtividade;
   id: string;
   titulo: string;
   inicio: string;
@@ -503,9 +518,9 @@ export function fetchCursos(): Promise<CursoRow[]> {
       return [];
     }
 
-    const filtrados = ((data ?? []) as CursoRow[]).filter(
-      (c) => !c.percurso_id && !c.is_planejado
-    );
+    const filtrados = ((data ?? []) as CursoRow[])
+      .filter((c) => !c.percurso_id && !c.is_planejado)
+      .map((c) => ({ ...c, tipo: "curso" as const }));
 
     if (filtrados.length === 0) return filtrados;
 
@@ -525,6 +540,51 @@ export function fetchCursos(): Promise<CursoRow[]> {
   });
 
   return cursosInflight;
+}
+
+/**
+ * Eventos ou oficinas do SGE para a página Atividades: mesmo critério dos cursos (não
+ * cancelado, não planejado, fora de percurso, ano corrente, ainda não terminado). A
+ * visibilidade (`visivel_site`) é filtrada depois, por `isVisivel`, como nos cursos.
+ */
+export async function fetchEventosOficinas(
+  tipo: Exclude<TipoAtividade, "curso">
+): Promise<CursoRow[]> {
+  const ano = new Date().getFullYear();
+  const hoje = hojeISO();
+  const colunas = tipo === "evento" ? COLUNAS_EVENTO : COLUNAS_OFICINA;
+  // Cliente sem tipos: a lista de colunas é montada em tempo de execução e estoura a inferência.
+  const { data, error } = await (supabase as any)
+    .from(TABELA_TIPO[tipo])
+    .select(`${colunas}, parceiros(id, nome), unidades:unidade_id(id, nome)`)
+    .eq("is_cancelado", false)
+    .eq("is_planejado", false)
+    .is("percurso_id", null)
+    .gte("inicio", `${ano}-01-01`)
+    .lte("inicio", `${ano}-12-31`)
+    .gte("fim", hoje)
+    .order("inicio", { ascending: true });
+
+  if (error) {
+    console.error(`Erro ao buscar ${TABELA_TIPO[tipo]}:`, error.message);
+    return [];
+  }
+
+  const rows = ((data ?? []) as Record<string, any>[]).map((r) => comoCursoRow(tipo, r));
+  return Promise.all(
+    rows.map(async (c) => ({
+      ...c,
+      qtd_inscritos:
+        limiteInscricoes(c) == null
+          ? 0
+          : await contarInscritosAtividade(tipo, c.id).catch(() => 0),
+    }))
+  );
+}
+
+/** Lista de uma aba da página Atividades. */
+export function fetchAtividades(tipo: TipoAtividade): Promise<CursoRow[]> {
+  return tipo === "curso" ? fetchCursos() : fetchEventosOficinas(tipo);
 }
 
 /** Visível no site público: coluna ausente/null/true => visível; só oculta quando false. */
@@ -617,8 +677,11 @@ export function selecionarDestaquesHome(cursos: CursoRow[]): CursoRow[] {
 
 /** Detalhes usados na modal de inscrição (mesmo conteúdo do material de divulgação). */
 export async function fetchCursoDivulgacao(
-  cursoId: string
+  cursoId: string,
+  tipo: TipoAtividade = "curso"
 ): Promise<CursoDivulgacao | null> {
+  if (tipo !== "curso") return fetchAtividadeDivulgacao(tipo, cursoId);
+
   const { data, error } = await supabase
     .from("cursos")
     .select(
@@ -689,6 +752,7 @@ export async function fetchCursoDivulgacao(
     .filter((p: PreRequisito) => Boolean(p.descricao));
 
   return {
+    tipo: "curso",
     id: row.id,
     titulo: row.titulo,
     inicio: row.inicio,
@@ -713,6 +777,76 @@ export async function fetchCursoDivulgacao(
     criterios,
     localAula: unidadeAula,
     localAtendimento,
+  };
+}
+
+/**
+ * Mesmo conteúdo da modal/formulário para evento e oficina. Sem atendimento (não há
+ * seleção), sem conteúdo programático; o local pode ser o endereço escrito à mão do evento.
+ */
+async function fetchAtividadeDivulgacao(
+  tipo: Exclude<TipoAtividade, "curso">,
+  id: string
+): Promise<CursoDivulgacao | null> {
+  const colunas = tipo === "evento" ? COLUNAS_EVENTO : COLUNAS_OFICINA;
+  const { data, error } = await (supabase as any)
+    .from(TABELA_TIPO[tipo])
+    .select(`${colunas}, unidades:unidade_id(nome, endereco)`)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`Erro ao buscar divulgação (${tipo}):`, error.message);
+    return null;
+  }
+  if (!data) return null;
+  const row = data as Record<string, any>;
+  // Atividade de percurso não tem inscrição própria.
+  if (row.percurso_id) return null;
+
+  const [{ data: prereqs }, inscritos] = await Promise.all([
+    supabase
+      .from("pre_requisitos_atividade")
+      .select("descricao, ordem, is_obrigatorio")
+      .eq(FK_TIPO[tipo], id)
+      .order("ordem", { ascending: true }),
+    contarInscritosAtividade(tipo, id).catch(() => 0),
+  ]);
+
+  const criterios: PreRequisito[] = (prereqs ?? [])
+    .map((p: any) => ({
+      descricao: String(p.descricao || "").trim(),
+      obrigatorio: p.is_obrigatorio !== false,
+    }))
+    .filter((p: PreRequisito) => Boolean(p.descricao));
+
+  const localAula: UnidadeResumo = row.unidades ?? (row.local_manual ? { nome: row.local_manual } : {});
+
+  return {
+    tipo,
+    id: row.id,
+    titulo: row.titulo,
+    inicio: row.inicio,
+    fim: row.fim,
+    vagas: row.vagas ?? null,
+    max_inscricoes: row.max_inscricoes ?? null,
+    qtd_inscritos: inscritos,
+    periodo: row.periodo,
+    dia_semana: row.dia_semana ?? [],
+    objetivo_curso: row.objetivo ?? null,
+    carga_horaria_total: (tipo === "evento" ? row.carga_horaria : row.carga_horaria_total) ?? null,
+    carga_horaria_diaria: tipo === "oficina" ? row.carga_horaria_diaria ?? null : null,
+    horario_aula_inicio: row.horario_inicio ?? null,
+    horario_aula_fim: row.horario_fim ?? null,
+    data_selecao: null,
+    horario_atendimento_inicio: null,
+    inscricoes_inicio: row.inscricoes_inicio ?? null,
+    inscricoes_fim: row.inscricoes_fim ?? null,
+    aceita_menores_18: row.aceita_menores_18 !== false,
+    conteudos: [],
+    criterios,
+    localAula,
+    localAtendimento: localAula,
   };
 }
 
@@ -743,9 +877,42 @@ export async function fetchCursosAdmin(): Promise<CursoRow[]> {
   );
 }
 
-export async function setVisivelSite(id: string, visivel: boolean): Promise<void> {
+/**
+ * Eventos/oficinas do painel admin, com as mesmas regras de listagem do site. O admin é
+ * usuário logado do SGE e lê a tabela inteira; o `select` explícito é só por coerência.
+ */
+export async function fetchAtividadesAdmin(tipo: TipoAtividade): Promise<CursoRow[]> {
+  if (tipo === "curso") {
+    return (await fetchCursosAdmin()).map((c) => ({ ...c, tipo: "curso" as const }));
+  }
+  const ano = new Date().getFullYear();
+  const hoje = hojeISO();
+  const colunas = tipo === "evento" ? COLUNAS_EVENTO : COLUNAS_OFICINA;
+  // Cliente sem tipos: a lista de colunas é montada em tempo de execução e estoura a inferência.
+  const { data, error } = await (supabase as any)
+    .from(TABELA_TIPO[tipo])
+    .select(`${colunas}, parceiros(id, nome), unidades:unidade_id(id, nome)`)
+    .eq("is_cancelado", false)
+    .eq("is_planejado", false)
+    .is("percurso_id", null)
+    .gte("inicio", `${ano}-01-01`)
+    .lte("inicio", `${ano}-12-31`)
+    .gte("fim", hoje)
+    .order("inicio", { ascending: true });
+  if (error) {
+    console.error(`Erro ao buscar ${TABELA_TIPO[tipo]} (admin):`, error.message);
+    return [];
+  }
+  return ((data ?? []) as Record<string, any>[]).map((r) => comoCursoRow(tipo, r));
+}
+
+export async function setVisivelSite(
+  id: string,
+  visivel: boolean,
+  tipo: TipoAtividade = "curso"
+): Promise<void> {
   const { error } = await supabase
-    .from("cursos")
+    .from(TABELA_TIPO[tipo])
     .update({ visivel_site: visivel })
     .eq("id", id);
   if (error) throw error;
@@ -772,7 +939,7 @@ export async function setCursoImagem(
   cursoId: string,
   file: File,
   urlAtual?: string | null,
-  opts?: { maxBytes?: number }
+  opts?: { maxBytes?: number; tipo?: TipoAtividade }
 ): Promise<string> {
   const max = opts?.maxBytes ?? MAX_CURSO_IMAGEM_BYTES;
   if (!file.type.startsWith("image/")) {
@@ -795,7 +962,7 @@ export async function setCursoImagem(
 
   const url = publicUrl(BUCKET_CURSOS, path);
   const { error } = await supabase
-    .from("cursos")
+    .from(TABELA_TIPO[opts?.tipo ?? "curso"])
     .update({ imagem_url: url })
     .eq("id", cursoId);
   if (error) {
@@ -814,7 +981,7 @@ export async function setCursoImagem(
 export async function removerCursoImagem(curso: CursoRow): Promise<void> {
   const path = pathFromCursoImagemUrl(curso.imagem_url);
   const { error } = await supabase
-    .from("cursos")
+    .from(TABELA_TIPO[curso.tipo ?? "curso"])
     .update({ imagem_url: null })
     .eq("id", curso.id);
   if (error) throw error;

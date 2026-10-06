@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
-  fetchCursos,
+  fetchAtividades,
   statusDe,
   isVisivel,
   isAtivoNoSite,
@@ -24,6 +24,17 @@ import {
 import { CURSO_FALLBACK } from "@/lib/refImages";
 import LoadingLogo from "@/components/LoadingLogo";
 import InscricaoModal from "@/components/InscricaoModal";
+import { ROTULO_TIPO, tipoDoSlug, type TipoAtividade } from "@/lib/atividades";
+
+/** Texto do topo de cada aba da página Atividades. */
+const INTRO: Record<TipoAtividade, string> = {
+  curso:
+    "Cursos gratuitos de qualificação profissional. Veja os que estão com inscrição aberta e inscreva-se aqui mesmo, pelo site.",
+  evento:
+    "Palestras, ações comunitárias e encontros abertos à comunidade. Veja os que estão com inscrição aberta e inscreva-se pelo site.",
+  oficina:
+    "Oficinas práticas e de curta duração. Veja as que estão com inscrição aberta e inscreva-se pelo site.",
+};
 
 type Filtro = "todos" | Exclude<StatusCurso, "finalizado">;
 
@@ -46,7 +57,14 @@ const FILTROS: { key: Filtro; label: string }[] = [
   { key: "planejado", label: "Em breve" },
 ];
 
+/**
+ * Lista de uma aba da página Atividades: `/atividades/cursos`, `/eventos` ou `/oficinas`.
+ * Nasceu como a página Cursos; evento e oficina usam o mesmo card e a mesma modal.
+ */
 export default function Cursos() {
+  const { slug } = useParams<{ slug?: string }>();
+  const tipo: TipoAtividade = tipoDoSlug(slug) ?? "curso";
+  const rotulo = ROTULO_TIPO[tipo];
   const [searchParams, setSearchParams] = useSearchParams();
   const [cursos, setCursos] = useState<CursoRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +80,8 @@ export default function Cursos() {
 
   useEffect(() => {
     let ativo = true;
-    fetchCursos().then((data) => {
+    setLoading(true);
+    fetchAtividades(tipo).then((data) => {
       if (!ativo) return;
       setCursos(data.filter(isVisivel).filter(isAtivoNoSite));
       setLoading(false);
@@ -70,7 +89,7 @@ export default function Cursos() {
     return () => {
       ativo = false;
     };
-  }, []);
+  }, [tipo]);
 
   const atualizarBusca = (valor: string) => {
     setBusca(valor);
@@ -87,7 +106,7 @@ export default function Cursos() {
   const unidades = useMemo(() => {
     const nomes = new Set<string>();
     for (const c of cursos) {
-      const nome = abreviarUnidade(c.unidades?.nome);
+      const nome = abreviarUnidade(c.unidades?.nome) || c.local_manual || "";
       if (nome) nomes.add(nome);
     }
     return [...nomes].sort((a, b) => a.localeCompare(b, "pt-BR"));
@@ -118,7 +137,7 @@ export default function Cursos() {
       if (filtro !== "todos" && statusDe(c) !== filtro) return false;
       if (
         unidade !== TODAS_UNIDADES &&
-        abreviarUnidade(c.unidades?.nome) !== unidade
+        (abreviarUnidade(c.unidades?.nome) || c.local_manual || "") !== unidade
       ) {
         return false;
       }
@@ -145,10 +164,15 @@ export default function Cursos() {
     <div className="mx-auto max-w-container px-6 pb-20 pt-14">
       <div className="mb-2 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="mb-3 font-display text-[42px] font-black">Cursos</h1>
+          <Link
+            to="/atividades"
+            className="mb-2 inline-block text-[14px] font-bold text-azul transition-colors hover:text-laranja"
+          >
+            ← Atividades
+          </Link>
+          <h1 className="mb-3 font-display text-[42px] font-black">{rotulo.plural}</h1>
           <p className="m-0 max-w-[560px] text-base leading-[1.6] text-ink-2">
-            Cursos gratuitos de qualificação profissional. Veja os que estão com
-            inscrição aberta e inscreva-se aqui mesmo, pelo site.
+            {INTRO[tipo]}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -178,8 +202,8 @@ export default function Cursos() {
           type="search"
           value={busca}
           onChange={(e) => atualizarBusca(e.target.value)}
-          placeholder="Buscar curso pelo nome…"
-          aria-label="Buscar curso pelo nome"
+          placeholder="Buscar pelo nome…"
+          aria-label={`Buscar ${rotulo.plural.toLowerCase()} pelo nome`}
           className="w-full max-w-md rounded-xl border-[1.5px] border-black/[.12] bg-white px-4 py-[13px] text-[15px] text-ink outline-none transition-colors placeholder:text-ink-2/70 focus:border-azul"
         />
         {periodos.length > 1 && (
@@ -223,15 +247,17 @@ export default function Cursos() {
       </div>
 
       {loading ? (
-        <LoadingLogo label="Carregando cursos…" />
+        <LoadingLogo label={`Carregando ${rotulo.plural.toLowerCase()}…`} />
       ) : filtrados.length === 0 ? (
         <div className="mt-8">
           <p className="m-0 text-ink-2">
             {busca.trim()
-              ? `Nenhum curso encontrado para “${busca.trim()}”.`
+              ? `Nada encontrado para “${busca.trim()}”.`
               : temFiltro
-                ? "Nenhum curso com os filtros escolhidos."
-                : "Nenhum curso disponível no momento."}
+                ? "Nada com os filtros escolhidos."
+                : tipo === "oficina"
+                  ? "Nenhuma oficina disponível no momento."
+                  : `Nenhum ${rotulo.singular.toLowerCase()} disponível no momento.`}
           </p>
           {temFiltro && (
             <button
@@ -257,6 +283,7 @@ export default function Cursos() {
 
       <InscricaoModal
         cursoId={cursoInscricaoId}
+        tipo={tipo}
         onClose={() => setCursoInscricaoId(null)}
       />
     </div>
@@ -277,7 +304,7 @@ function CursoCard({
   const listaEspera = emListaEspera(curso);
   const avisoInscricao =
     st === "planejado" ? avisoInscricaoFechada(curso) : null;
-  const unidade = abreviarUnidade(curso.unidades?.nome);
+  const unidade = abreviarUnidade(curso.unidades?.nome) || curso.local_manual || "";
   const temImagem = Boolean(curso.imagem_url);
   const img = curso.imagem_url || CURSO_FALLBACK;
   const dias = formatDiasCurto(curso.dia_semana);
@@ -328,7 +355,9 @@ function CursoCard({
           {unidade ? <Chip>📍 {unidade}</Chip> : null}
         </div>
         <div className="text-[13px] text-ink-2">
-          De {fmtDataCurta(curso.inicio)} a {fmtDataCurta(curso.fim)}
+          {curso.inicio === curso.fim
+            ? `Em ${fmtDataCurta(curso.inicio)}`
+            : `De ${fmtDataCurta(curso.inicio)} a ${fmtDataCurta(curso.fim)}`}
         </div>
         <div className="mt-auto">
           {st === "inscricoes" ? (

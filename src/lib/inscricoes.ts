@@ -1,4 +1,11 @@
 import { supabase } from "./supabase";
+import {
+  FK_TIPO,
+  INDICE_CPF_TIPO,
+  NESTE_TIPO,
+  contarInscritosAtividade,
+  type TipoAtividade,
+} from "./atividades";
 
 /**
  * Inscrição em curso feita pelo próprio site.
@@ -320,15 +327,23 @@ export async function buscarCep(cep: string): Promise<EnderecoCep | null> {
  */
 export async function jaInscritoNoCurso(
   cpf: string,
-  cursoId: string
+  cursoId: string,
+  tipo: TipoAtividade = "curso"
 ): Promise<boolean> {
   const limpo = apenasDigitos(cpf);
   if (limpo.length !== 11) return false;
 
-  const { data, error } = await supabase.rpc("inscricao_publica_ja_inscrito", {
-    p_curso_id: cursoId,
-    p_cpf: limpo,
-  });
+  const { data, error } =
+    tipo === "curso"
+      ? await supabase.rpc("inscricao_publica_ja_inscrito", {
+          p_curso_id: cursoId,
+          p_cpf: limpo,
+        })
+      : await supabase.rpc("inscricao_publica_ja_inscrito_atividade", {
+          p_tipo: tipo,
+          p_atividade_id: cursoId,
+          p_cpf: limpo,
+        });
 
   if (error) {
     console.error("Erro ao verificar CPF:", error.message);
@@ -390,6 +405,8 @@ export interface DadosInscricao {
 }
 
 export interface CursoInscricao {
+  /** Curso, evento ou oficina. Ausente = curso. */
+  tipo?: TipoAtividade;
   id: string;
   max_inscricoes: number | null;
   aceita_menores_18: boolean;
@@ -420,7 +437,8 @@ export async function criarInscricao(
     .eq("cpf", cpfLimpo)
     .maybeSingle();
 
-  const inscritos = await contarInscritos(curso.id);
+  const tipo = curso.tipo ?? "curso";
+  const inscritos = await contarInscritosAtividade(tipo, curso.id);
   const listaEspera =
     curso.max_inscricoes != null &&
     curso.max_inscricoes > 0 &&
@@ -446,7 +464,7 @@ export async function criarInscricao(
       ? dados.responsavelDataNascimento
       : null,
     responsavel_telefone: menorAceito ? dados.responsavelTelefone.trim() : null,
-    curso_id: curso.id,
+    [FK_TIPO[tipo]]: curso.id,
     atende_pre_requisitos: dados.atendePreRequisitos,
     lgpd_aceite: dados.lgpdAceite,
     criterios_aceite: dados.criteriosAceite,
@@ -467,8 +485,8 @@ export async function criarInscricao(
   const { error } = await supabase.from("inscricoes").insert(payload);
 
   if (error) {
-    if (error.message.includes("idx_inscricoes_unique_cpf_curso")) {
-      throw new Error("Você já possui uma inscrição ativa para este curso.");
+    if (error.message.includes(INDICE_CPF_TIPO[tipo])) {
+      throw new Error(`Você já possui uma inscrição ativa ${NESTE_TIPO[tipo]}.`);
     }
     throw new Error(error.message);
   }

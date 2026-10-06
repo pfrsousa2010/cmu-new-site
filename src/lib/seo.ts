@@ -38,15 +38,25 @@ export const PAGINAS_SEO: Record<string, PaginaSeo> = {
     descricao:
       "Serviço de Convivência e Fortalecimento de Vínculos (SCFV) e Educação Socioprofissional: os projetos do Clube das Mães Unidas em Londrina/PR.",
   },
-  "/cursos": {
+  "/atividades": {
+    titulo: "Atividades",
+    descricao:
+      "Cursos, eventos e oficinas gratuitos do Clube das Mães Unidas em Londrina/PR. Veja o que está com inscrição aberta e inscreva-se pelo site.",
+  },
+  "/atividades/cursos": {
     titulo: "Cursos gratuitos",
     descricao:
       "Cursos profissionalizantes gratuitos em Londrina/PR. Veja as turmas com inscrições abertas no Clube das Mães Unidas e faça sua pré-inscrição.",
   },
-  "/eventos": {
-    titulo: "Eventos e fotos",
+  "/atividades/eventos": {
+    titulo: "Eventos com inscrição",
     descricao:
-      "Fotos e registros dos eventos, formaturas e ações do Clube das Mães Unidas em Londrina/PR.",
+      "Palestras e ações comunitárias gratuitas do Clube das Mães Unidas em Londrina/PR. Inscreva-se pelo site.",
+  },
+  "/atividades/oficinas": {
+    titulo: "Oficinas gratuitas",
+    descricao:
+      "Oficinas práticas e gratuitas do Clube das Mães Unidas em Londrina/PR. Veja as inscrições abertas.",
   },
   "/parceiros": {
     titulo: "Parceiros",
@@ -108,8 +118,8 @@ function setCanonical(url: string | null) {
 
 /**
  * Aplica as metas da rota atual. Rotas fora de `PAGINAS_SEO` (a inscrição
- * de cada curso) recebem `noindex`: são formulários de turmas que fecham,
- * e quem deve aparecer na busca é a página /cursos.
+ * de cada atividade) recebem `noindex`: são formulários de turmas que fecham,
+ * e quem deve aparecer na busca são as páginas de /atividades.
  */
 export function aplicarSeo(caminho: string) {
   const pagina = PAGINAS_SEO[caminho];

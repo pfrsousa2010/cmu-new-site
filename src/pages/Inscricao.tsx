@@ -20,6 +20,14 @@ import {
   type CursoDivulgacao,
 } from "@/lib/cursos";
 import {
+  DO_TIPO,
+  NESTE_TIPO,
+  ROTULO_TIPO,
+  SLUG_TIPO,
+  tipoDoSlug,
+  type TipoAtividade,
+} from "@/lib/atividades";
+import {
   COMO_SOUBE_OPCOES,
   ESCOLARIDADE_OPCOES,
   ESTADO_CIVIL_OPCOES,
@@ -48,9 +56,16 @@ import { setTituloPagina } from "@/lib/seo";
  * validações e as mesmas três travas em cascata — o CPF libera o formulário,
  * o CEP libera o endereço, a declaração de pré-requisitos libera o envio.
  * A diferença é a coluna `origem`, gravada como `site_cmu`.
+ *
+ * Serve a curso, evento e oficina (`/atividades/:slug/:id/inscricao`) com a mesma ficha —
+ * decisão do cliente. Evento e oficina não têm seleção: some o aviso de atendimento.
  */
 export default function Inscricao() {
-  const { cursoId } = useParams<{ cursoId: string }>();
+  const { cursoId, slug } = useParams<{ cursoId: string; slug?: string }>();
+  // Rota antiga `/cursos/:cursoId/inscricao` não tem slug: é curso.
+  const tipo: TipoAtividade = tipoDoSlug(slug) ?? "curso";
+  const ehCurso = tipo === "curso";
+  const listaPath = `/atividades/${SLUG_TIPO[tipo]}`;
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -110,7 +125,7 @@ export default function Inscricao() {
     if (!cursoId) return;
     let ativo = true;
     setCarregando(true);
-    fetchCursoDivulgacao(cursoId).then((data) => {
+    fetchCursoDivulgacao(cursoId, tipo).then((data) => {
       if (!ativo) return;
       setCurso(data);
       setCarregando(false);
@@ -119,7 +134,7 @@ export default function Inscricao() {
     return () => {
       ativo = false;
     };
-  }, [cursoId]);
+  }, [cursoId, tipo]);
 
   const preReqObrigatorios = useMemo(
     () => (curso?.criterios ?? []).filter((c) => c.obrigatorio),
@@ -213,7 +228,7 @@ export default function Inscricao() {
     setCpfErro(null);
     setVerificandoCpf(true);
     try {
-      if (await jaInscritoNoCurso(limpo, cursoId)) {
+      if (await jaInscritoNoCurso(limpo, cursoId, tipo)) {
         setInscricaoDuplicada(true);
         setFormularioLiberado(false);
         return;
@@ -276,7 +291,7 @@ export default function Inscricao() {
       return "Informe um CPF válido e aguarde a verificação para continuar.";
     }
     if (inscricaoDuplicada) {
-      return "Você já possui uma inscrição ativa para este curso.";
+      return `Você já possui uma inscrição ativa ${NESTE_TIPO[tipo]}.`;
     }
     if (!nome || !dataNascimento || !cpf || !telefone || !email) {
       return "Preencha todos os campos obrigatórios.";
@@ -301,9 +316,9 @@ export default function Inscricao() {
     if (participouOutrosCursos === null) {
       return "Informe se você já participou de outros cursos no Clube das Mães Unidas.";
     }
-    if (!comoSoube) return "Informe como você soube do curso.";
+    if (!comoSoube) return `Informe como você soube ${DO_TIPO[tipo]}.`;
     if (comoSoube === "Outro" && !comoSoubeOutro.trim()) {
-      return "Descreva como você soube do curso.";
+      return `Descreva como você soube ${DO_TIPO[tipo]}.`;
     }
     if (
       isMenor &&
@@ -368,6 +383,7 @@ export default function Inscricao() {
     try {
       const resultado = await criarInscricao(
         {
+          tipo,
           id: curso.id,
           max_inscricoes: curso.max_inscricoes,
           aceita_menores_18: curso.aceita_menores_18,
@@ -396,14 +412,15 @@ export default function Inscricao() {
   if (!curso || !disponibilidade) {
     return (
       <Aviso
-        titulo="Curso não encontrado"
-        texto="O link pode estar incorreto ou o curso saiu do ar."
+        titulo="Atividade não encontrada"
+        texto="O link pode estar incorreto ou a atividade saiu do ar."
       />
     );
   }
 
   if (concluido) {
     return <Sucesso curso={curso} listaEspera={concluido.listaEspera} />;
+
   }
 
   if (!disponibilidade.disponivel) {
@@ -411,6 +428,7 @@ export default function Inscricao() {
       <Aviso
         titulo="Inscrição não disponível"
         texto={mensagemIndisponivel(curso, disponibilidade)}
+        voltarPara={listaPath}
       />
     );
   }
@@ -431,10 +449,10 @@ export default function Inscricao() {
     <div className="mx-auto max-w-[860px] px-6 pb-20 pt-10">
       <button
         type="button"
-        onClick={() => navigate("/cursos")}
+        onClick={() => navigate(listaPath)}
         className="mb-6 text-[14px] font-bold text-azul transition-colors hover:text-laranja"
       >
-        ← Voltar para os cursos
+        ← Voltar para {ROTULO_TIPO[tipo].plural.toLowerCase()}
       </button>
 
       <div className="rounded-card bg-white p-7 shadow-card sm:p-9">
@@ -445,7 +463,10 @@ export default function Inscricao() {
           {curso.titulo}
         </h1>
         <p className="m-0 text-[14.5px] text-ink-2">
-          Curso: {fmtDataCurta(curso.inicio)} a {fmtDataCurta(curso.fim)}
+          {ROTULO_TIPO[tipo].singular}:{" "}
+          {curso.inicio === curso.fim
+            ? fmtDataCurta(curso.inicio)
+            : `${fmtDataCurta(curso.inicio)} a ${fmtDataCurta(curso.fim)}`}
           {diasLabel || horario
             ? ` · ${[diasLabel, horario].filter(Boolean).join(", ")}`
             : ""}
@@ -461,7 +482,9 @@ export default function Inscricao() {
 
         <p className="mt-5 rounded-2xl bg-subtle px-5 py-4 text-[14.5px] leading-[1.6] text-ink-2">
           Esta <b>pré-inscrição não garante a sua vaga</b>.{" "}
-          {atendePorContato
+          {!ehCurso
+            ? "Depois de enviá-la, a equipe do CMU confirma a sua participação."
+            : atendePorContato
             ? "Depois de enviá-la, a equipe entra em contato com você para agendar a entrevista de seleção."
             : "Depois de enviá-la, você precisa comparecer ao atendimento presencial para a entrevista de seleção."}
         </p>
@@ -526,7 +549,7 @@ export default function Inscricao() {
               erro={
                 cpfErro ??
                 (inscricaoDuplicada
-                  ? "Este CPF já possui uma inscrição para este curso."
+                  ? `Este CPF já possui uma inscrição ${NESTE_TIPO[tipo]}.`
                   : null)
               }
             >
@@ -581,7 +604,7 @@ export default function Inscricao() {
           {inscricaoDuplicada && (
             <div className="rounded-2xl bg-vermelho/[.08] px-5 py-4 text-[14.5px] leading-[1.6] text-ink">
               <b>Inscrição já realizada.</b> Não é possível fazer uma nova
-              inscrição neste curso com este CPF. Se você acha que houve um
+              inscrição {NESTE_TIPO[tipo]} com este CPF. Se você acha que houve um
               engano, fale com a equipe pela página de{" "}
               <Link to="/contato" className="font-bold text-azul underline">
                 contato
@@ -839,7 +862,7 @@ export default function Inscricao() {
               </Campo>
               <Campo
                 id="como-soube"
-                label="Como você soube do curso?"
+                label={`Como você soube ${DO_TIPO[tipo]}?`}
                 obrigatorio
                 className="sm:col-span-2"
               >
@@ -861,7 +884,7 @@ export default function Inscricao() {
                 </select>
                 {comoSoube === "Outro" && (
                   <input
-                    aria-label="Descreva como soube do curso"
+                    aria-label={`Descreva como soube ${DO_TIPO[tipo]}`}
                     placeholder="Descreva"
                     value={comoSoubeOutro}
                     onChange={(e) => setComoSoubeOutro(e.target.value)}
@@ -986,7 +1009,15 @@ function mensagemIndisponivel(
   return `As inscrições para ${curso.titulo} não estão disponíveis no momento.`;
 }
 
-function Aviso({ titulo, texto }: { titulo: string; texto: string }) {
+function Aviso({
+  titulo,
+  texto,
+  voltarPara = "/atividades",
+}: {
+  titulo: string;
+  texto: string;
+  voltarPara?: string;
+}) {
   return (
     <div className="mx-auto max-w-[720px] px-6 pb-20 pt-14">
       <div className="rounded-card bg-white p-9 shadow-card">
@@ -995,10 +1026,10 @@ function Aviso({ titulo, texto }: { titulo: string; texto: string }) {
         </h1>
         <p className="mt-3 text-[15px] leading-[1.65] text-ink-2">{texto}</p>
         <Link
-          to="/cursos"
+          to={voltarPara}
           className="mt-6 inline-block rounded-full border-[1.5px] border-black/[.12] bg-white px-6 py-3 font-display text-sm font-extrabold text-ink transition-colors hover:border-azul hover:text-azul"
         >
-          Ver outros cursos
+          Ver outras atividades
         </Link>
       </div>
     </div>
@@ -1020,6 +1051,8 @@ function Sucesso({
   // `data_selecao` preenchida do mesmo jeito, então mostrar a data aqui seria
   // marcar um compromisso que não existe.
   const porContato = unidadeAtendePorContato(curso.localAtendimento.nome);
+  // Evento e oficina não têm seleção: nada de entrevista nem data de atendimento.
+  const ehCurso = curso.tipo === "curso";
 
   return (
     <div className="mx-auto max-w-[720px] px-6 pb-20 pt-14">
@@ -1044,13 +1077,17 @@ function Sucesso({
           ) : (
             <>
               Sua inscrição em <b>{curso.titulo.trim()}</b> foi registrada. Ela{" "}
-              <b>não garante a vaga</b>: ainda há uma entrevista de seleção
-              {porContato ? "." : ", no atendimento presencial."}
+              <b>não garante a vaga</b>
+              {!ehCurso
+                ? ": a equipe do CMU confirma a sua participação."
+                : porContato
+                  ? ": ainda há uma entrevista de seleção."
+                  : ": ainda há uma entrevista de seleção, no atendimento presencial."}
             </>
           )}
         </p>
 
-        {porContato ? (
+        {!ehCurso ? null : porContato ? (
           <div className="mt-6 rounded-2xl bg-laranja/[.1] px-6 py-5">
             <p className="m-0 text-[13px] font-extrabold uppercase tracking-[.04em] text-laranja">
               Aguarde nosso contato
@@ -1088,10 +1125,10 @@ function Sucesso({
             Página inicial
           </Link>
           <Link
-            to="/cursos"
+            to={`/atividades/${SLUG_TIPO[curso.tipo]}`}
             className="flex-1 whitespace-nowrap rounded-full bg-verde px-4 py-3 text-center font-display text-[13.5px] font-extrabold text-white transition-colors hover:bg-verde-hover sm:flex-none sm:px-6 sm:text-sm"
           >
-            Ver outros cursos
+            Ver outras atividades
           </Link>
         </div>
       </div>

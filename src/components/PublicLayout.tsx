@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import Seo from "@/components/Seo";
 
 const WHATSAPP_URL =
@@ -9,13 +9,104 @@ const NAV = [
   { to: "/", label: "Início", end: true },
   { to: "/sobre", label: "Sobre nós" },
   { to: "/projetos", label: "Projetos" },
-  { to: "/cursos", label: "Cursos" },
-  { to: "/eventos", label: "Eventos e Fotos" },
+  { to: "/atividades", label: "Atividades", sub: true },
   { to: "/parceiros", label: "Parceiros" },
   { to: "/editais", label: "Editais" },
   { to: "/transparencia", label: "Transparência" },
   { to: "/contato", label: "Contato" },
 ];
+
+/** Itens do menu "Atividades" (abre em dropdown em vez de navegar). */
+const ATIVIDADES_SUB = [
+  { to: "/atividades/cursos", label: "Cursos" },
+  { to: "/atividades/eventos", label: "Eventos" },
+  { to: "/atividades/oficinas", label: "Oficinas" },
+];
+
+function Chevron({ aberto }: { aberto: boolean }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={`transition-transform ${aberto ? "rotate-180" : ""}`}
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+/**
+ * "Atividades" no menu do computador: o clique abre Cursos, Eventos e Oficinas.
+ * Fecha ao escolher, ao clicar fora, com Esc e ao trocar de página.
+ */
+function AtividadesDropdown() {
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const { pathname } = useLocation();
+  const ativo = pathname.startsWith("/atividades");
+
+  useEffect(() => setAberto(false), [pathname]);
+
+  useEffect(() => {
+    if (!aberto) return;
+    const fora = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setAberto(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setAberto(false);
+    document.addEventListener("mousedown", fora);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", fora);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [aberto]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={aberto}
+        onClick={() => setAberto((v) => !v)}
+        className={`${navClass({ isActive: ativo })} inline-flex items-center gap-1`}
+      >
+        Atividades
+        <Chevron aberto={aberto} />
+      </button>
+      {aberto && (
+        <div
+          role="menu"
+          className="absolute left-1/2 top-full z-50 mt-2 min-w-[180px] -translate-x-1/2 overflow-hidden rounded-xl border border-black/[.07] bg-white py-1.5 shadow-card-hover-lg"
+        >
+          {ATIVIDADES_SUB.map((s) => (
+            <NavLink
+              key={s.to}
+              to={s.to}
+              role="menuitem"
+              className={({ isActive }) =>
+                [
+                  "block px-4 py-2.5 text-sm transition-colors",
+                  isActive
+                    ? "bg-azul/10 font-extrabold text-azul"
+                    : "font-semibold text-ink-mid hover:bg-azul/[.08]",
+                ].join(" ")
+              }
+            >
+              {s.label}
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function navClass({ isActive }: { isActive: boolean }) {
   return [
@@ -49,15 +140,19 @@ export default function PublicLayout() {
           </Link>
 
           {/* Nav desktop */}
-          <nav className="hidden flex-1 flex-wrap justify-center gap-0.5 lg:flex">
-            {NAV.map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.end} className={navClass}>
-                {n.label}
-              </NavLink>
-            ))}
+          <nav className="hidden flex-1 flex-nowrap items-center justify-center gap-0.5 xl:flex">
+            {NAV.map((n) =>
+              n.sub ? (
+                <AtividadesDropdown key={n.to} />
+              ) : (
+                <NavLink key={n.to} to={n.to} end={n.end} className={navClass}>
+                  {n.label}
+                </NavLink>
+              )
+            )}
           </nav>
 
-          <div className="flex flex-1 items-center justify-end gap-2 lg:flex-none lg:flex-initial">
+          <div className="flex flex-1 items-center justify-end gap-2 xl:flex-none xl:flex-initial">
             <Link
               to="/doar"
               className="flex-none animate-cta-pulse rounded-full bg-laranja px-[22px] py-2.5 font-display text-sm font-extrabold text-white shadow-[0_3px_10px_rgba(238,118,35,.35)] transition-colors hover:bg-laranja-hover hover:text-white"
@@ -69,7 +164,7 @@ export default function PublicLayout() {
               type="button"
               aria-label="Menu"
               onClick={() => setOpen((v) => !v)}
-              className="flex h-11 w-11 items-center justify-center rounded-full text-ink hover:bg-black/[.05] lg:hidden"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-ink hover:bg-black/[.05] xl:hidden"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                 {open ? (
@@ -91,26 +186,52 @@ export default function PublicLayout() {
 
         {/* Nav mobile */}
         {open && (
-          <nav className="border-t border-black/[.07] bg-white px-4 py-3 lg:hidden">
+          <nav className="border-t border-black/[.07] bg-white px-4 py-3 xl:hidden">
             <div className="mx-auto flex max-w-container flex-col gap-1">
-              {NAV.map((n) => (
-                <NavLink
-                  key={n.to}
-                  to={n.to}
-                  end={n.end}
-                  onClick={() => setOpen(false)}
-                  className={({ isActive }) =>
-                    [
-                      "rounded-xl px-4 py-3 text-[15px]",
-                      isActive
-                        ? "bg-azul/10 font-extrabold text-azul"
-                        : "font-semibold text-ink-mid",
-                    ].join(" ")
-                  }
-                >
-                  {n.label}
-                </NavLink>
-              ))}
+              {NAV.map((n) =>
+                n.sub ? (
+                  // No celular o grupo fica aberto: título e os três itens recuados.
+                  <div key={n.to} className="flex flex-col gap-1">
+                    <span className="px-4 pb-1 pt-3 text-[15px] font-semibold text-ink-mid">
+                      {n.label}
+                    </span>
+                    {ATIVIDADES_SUB.map((s) => (
+                      <NavLink
+                        key={s.to}
+                        to={s.to}
+                        onClick={() => setOpen(false)}
+                        className={({ isActive }) =>
+                          [
+                            "rounded-xl py-2.5 pl-8 pr-4 text-[15px]",
+                            isActive
+                              ? "bg-azul/10 font-extrabold text-azul"
+                              : "font-semibold text-ink-mid",
+                          ].join(" ")
+                        }
+                      >
+                        {s.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                ) : (
+                  <NavLink
+                    key={n.to}
+                    to={n.to}
+                    end={n.end}
+                    onClick={() => setOpen(false)}
+                    className={({ isActive }) =>
+                      [
+                        "rounded-xl px-4 py-3 text-[15px]",
+                        isActive
+                          ? "bg-azul/10 font-extrabold text-azul"
+                          : "font-semibold text-ink-mid",
+                      ].join(" ")
+                    }
+                  >
+                    {n.label}
+                  </NavLink>
+                )
+              )}
             </div>
           </nav>
         )}
@@ -146,7 +267,7 @@ export default function PublicLayout() {
               {[
                 ["/sobre", "Sobre nós"],
                 ["/projetos", "Projetos"],
-                ["/cursos", "Cursos"],
+                ["/atividades", "Atividades"],
                 ["/transparencia", "Transparência"],
               ].map(([to, label]) => (
                 <Link

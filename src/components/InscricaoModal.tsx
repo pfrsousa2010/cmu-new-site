@@ -17,13 +17,16 @@ import {
   type CursoDivulgacao,
   type PreRequisito,
 } from "@/lib/cursos";
+import { DO_TIPO, ROTULO_TIPO, urlInscricaoSite, type TipoAtividade } from "@/lib/atividades";
 
 interface InscricaoModalProps {
   cursoId: string | null;
+  /** Curso (padrão), evento ou oficina. */
+  tipo?: TipoAtividade;
   onClose: () => void;
 }
 
-export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps) {
+export default function InscricaoModal({ cursoId, tipo = "curso", onClose }: InscricaoModalProps) {
   const navigate = useNavigate();
   const [info, setInfo] = useState<CursoDivulgacao | null>(null);
   const [loading, setLoading] = useState(false);
@@ -38,16 +41,16 @@ export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps
     let ativo = true;
     setLoading(true);
     setErro("");
-    fetchCursoDivulgacao(cursoId).then((data) => {
+    fetchCursoDivulgacao(cursoId, tipo).then((data) => {
       if (!ativo) return;
-      if (!data) setErro("Não foi possível carregar as informações do curso.");
+      if (!data) setErro(`Não foi possível carregar as informações ${DO_TIPO[tipo]}.`);
       setInfo(data);
       setLoading(false);
     });
     return () => {
       ativo = false;
     };
-  }, [cursoId]);
+  }, [cursoId, tipo]);
 
   const open = Boolean(cursoId);
 
@@ -83,7 +86,7 @@ export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps
 
   const handleInscrever = () => {
     if (!cursoId) return;
-    navigate(`/cursos/${cursoId}/inscricao`);
+    navigate(urlInscricaoSite(tipo, cursoId));
   };
 
   return (
@@ -99,7 +102,7 @@ export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps
         </div>
       ) : erro || !info ? (
         <div className="space-y-5 p-8">
-          <p className="m-0 text-ink-2">{erro || "Curso não encontrado."}</p>
+          <p className="m-0 text-ink-2">{erro || "Atividade não encontrada."}</p>
           <button
             type="button"
             onClick={onClose}
@@ -115,7 +118,10 @@ export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps
               {info.titulo}
             </h2>
             <p className="mt-2 text-[14px] text-ink-2">
-              Curso: {fmtDataCurta(info.inicio)} a {fmtDataCurta(info.fim)}
+              {ROTULO_TIPO[tipo].singular}:{" "}
+              {info.inicio === info.fim
+                ? fmtDataCurta(info.inicio)
+                : `${fmtDataCurta(info.inicio)} a ${fmtDataCurta(info.fim)}`}
             </p>
             {(info.inscricoes_inicio || info.inscricoes_fim) && (
               <p className="mt-1 text-[14px] text-ink-2">
@@ -171,16 +177,25 @@ export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps
               </Section>
             )}
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <Section title="Conteúdo">
-                <ItemList items={info.conteudos} empty="Não informado" />
-              </Section>
-              <Section title="Critérios">
-                <PreRequisitoList itens={info.criterios} />
-              </Section>
-            </div>
+            {tipo === "curso" ? (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <Section title="Conteúdo">
+                  <ItemList items={info.conteudos} empty="Não informado" />
+                </Section>
+                <Section title="Critérios">
+                  <PreRequisitoList itens={info.criterios} />
+                </Section>
+              </div>
+            ) : (
+              // Evento e oficina não têm conteúdo programático cadastrado.
+              info.criterios.length > 0 && (
+                <Section title="Critérios">
+                  <PreRequisitoList itens={info.criterios} />
+                </Section>
+              )
+            )}
 
-            <Section title="Local da aula">
+            <Section title={tipo === "curso" ? "Local da aula" : "Local"}>
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <p className="m-0 text-[14.5px] leading-[1.55] text-ink-2">
                   {formatLocalUnidade(info.localAula)}
@@ -198,6 +213,8 @@ export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps
               </div>
             </Section>
 
+            {/* Só curso tem seleção (atendimento presencial). */}
+            {tipo === "curso" && (
             <Section title="Atendimento">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <p className="m-0 text-[14.5px] leading-[1.55] text-ink-2">
@@ -215,6 +232,7 @@ export default function InscricaoModal({ cursoId, onClose }: InscricaoModalProps
                 )}
               </div>
             </Section>
+            )}
           </div>
 
           {/* Lado a lado também no celular: cada botão fica com metade da
