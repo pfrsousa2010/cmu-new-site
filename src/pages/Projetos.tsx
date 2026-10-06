@@ -15,6 +15,14 @@ const PROJETOS = [
     texto:
       "Cursos de qualificação profissional gratuitos que preparam jovens e adultos para o mercado de trabalho e para a geração de renda.",
   },
+  {
+    bar: "bg-laranja",
+    kicker: "CPAJ",
+    kickerColor: "text-laranja",
+    titulo: "Centro de Profissionalização para Adolescentes e Jovens",
+    texto:
+      "É um espaço dedicado à formação, ao desenvolvimento de habilidades e à preparação para o mundo do trabalho. Por meio de cursos, oficinas e atividades socioeducativas, promovemos oportunidades de aprendizagem, autonomia, cidadania e construção de projetos de vida, contribuindo para que adolescentes e jovens ampliem suas perspectivas de futuro.",
+  },
 ];
 
 const FOTO_CAPACITACAO =
@@ -27,17 +35,17 @@ export default function Projetos() {
     <div className="mx-auto max-w-container px-6 pb-20 pt-14">
       <h1 className="mb-3 font-display text-[42px] font-black">Projetos</h1>
       <p className="m-0 mb-10 max-w-[640px] text-[17px] leading-[1.65] text-ink-2">
-        Duas frentes de atuação contínua junto à comunidade.
+        Três frentes de atuação contínua junto à comunidade.
       </p>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {PROJETOS.map((p) => (
           <div
             key={p.kicker}
             className="overflow-hidden rounded-modal border border-black/[.07] bg-white"
           >
             <div className={`h-2 ${p.bar}`} />
-            <div className="p-8">
+            <div className="p-6 lg:p-8">
               <div
                 className={`mb-2 text-xs font-bold tracking-[.06em] ${p.kickerColor}`}
               >
