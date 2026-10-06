@@ -20,6 +20,10 @@ export default defineConfig({
       },
     },
   ],
+  server: {
+    // O preview do app atribui a porta via PORT; sem ela, mantém o padrão do Vite.
+    port: process.env.PORT ? Number(process.env.PORT) : 5173,
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

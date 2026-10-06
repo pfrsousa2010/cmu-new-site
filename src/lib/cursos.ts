@@ -451,6 +451,35 @@ async function ocupacaoDoCurso(cursoId: string): Promise<number> {
   }
 }
 
+/**
+ * CH ajustada (base + extras/estágios − recessos), a mesma que o SGE exibe.
+ * A anon não lê `curso_extra`/`curso_estagio`, então vem por RPC. Em falha
+ * (ex.: migração ainda não aplicada) devolve mapa vazio e vale a CH base.
+ */
+async function fetchCargasAjustadas(): Promise<Map<string, number>> {
+  const { data, error } = await supabase.rpc("site_carga_horaria_ajustada");
+  if (error) {
+    console.error("Erro ao buscar CH ajustada:", error.message);
+    return new Map();
+  }
+  return new Map(
+    ((data ?? []) as { curso_id: string; carga_horaria: number }[]).map((r) => [
+      r.curso_id,
+      Number(r.carga_horaria),
+    ])
+  );
+}
+
+function comCargaAjustada(
+  rows: CursoRow[],
+  cargas: Map<string, number>
+): CursoRow[] {
+  return rows.map((c) => {
+    const ch = cargas.get(c.id);
+    return ch != null && ch > 0 ? { ...c, carga_horaria_total: ch } : c;
+  });
+}
+
 export function fetchCursos(): Promise<CursoRow[]> {
   if (cursosInflight) return cursosInflight;
 
@@ -474,11 +503,13 @@ export function fetchCursos(): Promise<CursoRow[]> {
       return [];
     }
 
-    const rows = ((data ?? []) as CursoRow[]).filter(
+    const filtrados = ((data ?? []) as CursoRow[]).filter(
       (c) => !c.percurso_id && !c.is_planejado
     );
 
-    if (rows.length === 0) return rows;
+    if (filtrados.length === 0) return filtrados;
+
+    const rows = comCargaAjustada(filtrados, await fetchCargasAjustadas());
 
     // Uma RPC por curso (a anon não lê `inscricoes`; ver `contarInscritos`).
     // Só os cursos com teto exibem ocupação, então os demais nem consultam.
@@ -668,7 +699,8 @@ export async function fetchCursoDivulgacao(
     periodo: row.periodo,
     dia_semana: row.dia_semana ?? [],
     objetivo_curso: row.objetivo_curso ?? null,
-    carga_horaria_total: row.carga_horaria_total ?? null,
+    carga_horaria_total:
+      (await fetchCargasAjustadas()).get(row.id) || row.carga_horaria_total || null,
     carga_horaria_diaria: row.carga_horaria_diaria ?? null,
     horario_aula_inicio: row.horario_aula_inicio ?? null,
     horario_aula_fim: row.horario_aula_fim ?? null,
