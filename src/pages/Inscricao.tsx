@@ -44,6 +44,7 @@ import {
   formatCpf,
   formatNomeProprio,
   formatTelefone,
+  erroTelefone,
   type DadosInscricao,
 } from "@/lib/inscricoes";
 import { setTituloPagina } from "@/lib/seo";
@@ -117,6 +118,11 @@ export default function Inscricao() {
   const [responsavelCpf, setResponsavelCpf] = useState("");
   const [responsavelDataNascimento, setResponsavelDataNascimento] = useState("");
   const [responsavelTelefone, setResponsavelTelefone] = useState("");
+  const [escola, setEscola] = useState("");
+  const [serie, setSerie] = useState("");
+  const [telTocado, setTelTocado] = useState<Record<string, boolean>>({});
+  const tocarTel = (campo: string) =>
+    setTelTocado((t) => ({ ...t, [campo]: true }));
   const [atendePreRequisitos, setAtendePreRequisitos] = useState(false);
   const [lgpdAceite, setLgpdAceite] = useState(false);
   const [criteriosAceite, setCriteriosAceite] = useState(false);
@@ -186,6 +192,9 @@ export default function Inscricao() {
     setResponsavelCpf("");
     setResponsavelDataNascimento("");
     setResponsavelTelefone("");
+    setEscola("");
+    setSerie("");
+    setTelTocado({});
     setLgpdAceite(false);
     setCriteriosAceite(false);
   };
@@ -296,6 +305,8 @@ export default function Inscricao() {
     if (!nome || !dataNascimento || !cpf || !telefone || !email) {
       return "Preencha todos os campos obrigatórios.";
     }
+    const erroTel = erroTelefone(telefone);
+    if (erroTel) return erroTel;
     if (!cpfValido(cpf)) return "Informe um CPF válido.";
     if (!emailValido(email)) return "Informe um e-mail válido.";
     if (!lgpdAceite) {
@@ -335,6 +346,10 @@ export default function Inscricao() {
     ) {
       return "O CPF do responsável é inválido.";
     }
+    if (isMenor && curso?.aceita_menores_18) {
+      const erroTelResp = erroTelefone(responsavelTelefone, true);
+      if (erroTelResp) return erroTelResp;
+    }
     return null;
   };
 
@@ -366,6 +381,8 @@ export default function Inscricao() {
       responsavelCpf,
       responsavelDataNascimento,
       responsavelTelefone,
+      escola,
+      serie,
       atendePreRequisitos,
       lgpdAceite,
       criteriosAceite,
@@ -658,7 +675,12 @@ export default function Inscricao() {
                     semFuturo
                   />
                 </Campo>
-                <Campo id="telefone" label="Telefone/celular" obrigatorio>
+                <Campo
+                  id="telefone"
+                  label="Telefone/celular"
+                  obrigatorio
+                  erro={telTocado.telefone ? erroTelefone(telefone) : null}
+                >
                   <input
                     id="telefone"
                     inputMode="tel"
@@ -666,7 +688,10 @@ export default function Inscricao() {
                     placeholder="(43) 99999-9999"
                     value={telefone}
                     onChange={(e) => setTelefone(formatTelefone(e.target.value))}
-                    className={inputCls(false)}
+                    onBlur={() => tocarTel("telefone")}
+                    className={inputCls(
+                      Boolean(telTocado.telefone && erroTelefone(telefone))
+                    )}
                   />
                 </Campo>
                 <Campo
@@ -941,7 +966,15 @@ export default function Inscricao() {
                     semFuturo
                   />
                 </Campo>
-                <Campo id="responsavel-telefone" label="Telefone do responsável">
+                <Campo
+                  id="responsavel-telefone"
+                  label="Telefone do responsável"
+                  erro={
+                    telTocado.responsavel
+                      ? erroTelefone(responsavelTelefone, true)
+                      : null
+                  }
+                >
                   <input
                     id="responsavel-telefone"
                     inputMode="tel"
@@ -950,6 +983,30 @@ export default function Inscricao() {
                     onChange={(e) =>
                       setResponsavelTelefone(formatTelefone(e.target.value))
                     }
+                    onBlur={() => tocarTel("responsavel")}
+                    className={inputCls(
+                      Boolean(
+                        telTocado.responsavel &&
+                          erroTelefone(responsavelTelefone, true)
+                      )
+                    )}
+                  />
+                </Campo>
+                <Campo id="responsavel-escola" label="Escola">
+                  <input
+                    id="responsavel-escola"
+                    value={escola}
+                    maxLength={150}
+                    onChange={(e) => setEscola(e.target.value)}
+                    className={inputCls(false)}
+                  />
+                </Campo>
+                <Campo id="responsavel-serie" label="Série">
+                  <input
+                    id="responsavel-serie"
+                    value={serie}
+                    maxLength={50}
+                    onChange={(e) => setSerie(e.target.value)}
                     className={inputCls(false)}
                   />
                 </Campo>

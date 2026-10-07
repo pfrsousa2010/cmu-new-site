@@ -162,6 +162,24 @@ export function formatTelefone(valor: string): string {
   return `(${ddd}) ${p1}-${p2}`;
 }
 
+/**
+ * Celular (11 dígitos, 9 depois do DDD) ou fixo (10 dígitos, 2 a 5 depois do
+ * DDD). Mesma regra do SGE — número incompleto vira contato que não existe.
+ */
+export function telefoneValido(valor: string): boolean {
+  const d = apenasDigitos(valor);
+  if (d.length !== 10 && d.length !== 11) return false;
+  if (d.startsWith("0")) return false;
+  return d.length === 11 ? d[2] === "9" : /[2-5]/.test(d[2]);
+}
+
+/** Mensagem de erro do telefone, ou `null` quando está certo (ou vazio e opcional). */
+export function erroTelefone(valor: string, opcional = false): string | null {
+  if (!apenasDigitos(valor)) return opcional ? null : "Informe o telefone.";
+  if (telefoneValido(valor)) return null;
+  return "Telefone inválido. Digite o DDD e o número completo, ex.: (43) 99999-8888.";
+}
+
 export function formatCep(valor: string): string {
   const d = apenasDigitos(valor).slice(0, 8);
   if (d.length <= 5) return d;
@@ -391,6 +409,8 @@ export interface DadosInscricao {
   responsavelCpf: string;
   responsavelDataNascimento: string;
   responsavelTelefone: string;
+  escola: string;
+  serie: string;
   atendePreRequisitos: boolean;
   lgpdAceite: boolean;
   criteriosAceite: boolean;
@@ -464,6 +484,8 @@ export async function criarInscricao(
       ? dados.responsavelDataNascimento
       : null,
     responsavel_telefone: menorAceito ? dados.responsavelTelefone.trim() : null,
+    escola: menorAceito ? dados.escola.trim() || null : null,
+    serie: menorAceito ? dados.serie.trim() || null : null,
     [FK_TIPO[tipo]]: curso.id,
     atende_pre_requisitos: dados.atendePreRequisitos,
     lgpd_aceite: dados.lgpdAceite,
