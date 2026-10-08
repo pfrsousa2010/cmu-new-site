@@ -8,6 +8,7 @@ import {
 import { Link, useNavigate, useParams } from "react-router-dom";
 import CampoData from "@/components/CampoData";
 import LoadingLogo from "@/components/LoadingLogo";
+import Modal from "@/components/Modal";
 import { useToast } from "@/components/Toast";
 import {
   fetchCursoDivulgacao,
@@ -47,6 +48,7 @@ import {
   erroTelefone,
   type DadosInscricao,
 } from "@/lib/inscricoes";
+import { fmtDataBR } from "@/lib/eventos";
 import { setTituloPagina } from "@/lib/seo";
 
 /**
@@ -73,6 +75,7 @@ export default function Inscricao() {
   const [curso, setCurso] = useState<CursoDivulgacao | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [enviando, setEnviando] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
   const [concluido, setConcluido] = useState<null | { listaEspera: boolean }>(
     null
   );
@@ -353,7 +356,8 @@ export default function Inscricao() {
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  /** Valida e abre a conferência dos dados básicos; o envio é em `enviar`. */
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!curso || enviando) return;
 
@@ -363,8 +367,19 @@ export default function Inscricao() {
       return;
     }
 
+    // Normaliza o nome antes de mostrar — o inscrito confere já formatado.
+    setNome(formatNomeProprio(nome));
+    setResponsavelNome(formatNomeProprio(responsavelNome));
+    setConfirmando(true);
+  };
+
+  const enviar = async () => {
+    if (!curso || enviando) return;
+
+    // O onBlur sozinho não basta: teclado de celular pode confirmar a sugestão
+    // de autocorrect depois do blur, e Enter envia sem blur.
     const dados: DadosInscricao = {
-      nome,
+      nome: formatNomeProprio(nome),
       dataNascimento,
       cpf,
       telefone,
@@ -377,7 +392,7 @@ export default function Inscricao() {
       cidade,
       estado,
       isMenor,
-      responsavelNome,
+      responsavelNome: formatNomeProprio(responsavelNome),
       responsavelCpf,
       responsavelDataNascimento,
       responsavelTelefone,
@@ -413,6 +428,7 @@ export default function Inscricao() {
       toast((err as Error).message);
     } finally {
       setEnviando(false);
+      setConfirmando(false);
     }
   };
 
@@ -1037,6 +1053,54 @@ export default function Inscricao() {
           </div>
         )}
       </form>
+
+      <Modal
+        open={confirmando}
+        onClose={() => !enviando && setConfirmando(false)}
+        width={480}
+      >
+        <h2 className="font-display text-xl font-extrabold text-ink">
+          Confira seus dados
+        </h2>
+        <p className="mt-1 text-[14px] text-ink-2">
+          Veja se está tudo certo antes de enviar. Usamos esses dados para
+          entrar em contato com você.
+        </p>
+        <dl className="mt-5 space-y-3 rounded-card bg-site-bg p-4 text-[15px]">
+          {[
+            ["Nome", nome],
+            ["CPF", cpf],
+            ["Data de nascimento", fmtDataBR(dataNascimento)],
+            ["Telefone", telefone],
+            ["E-mail", email.trim()],
+          ].map(([rotulo, valor]) => (
+            <div key={rotulo}>
+              <dt className="text-[12.5px] font-semibold uppercase tracking-wide text-ink-2">
+                {rotulo}
+              </dt>
+              <dd className="break-words font-semibold text-ink">{valor}</dd>
+            </div>
+          ))}
+        </dl>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row-reverse">
+          <button
+            type="button"
+            onClick={enviar}
+            disabled={enviando}
+            className="flex-1 rounded-full bg-verde px-6 py-3 font-display font-extrabold text-white transition-colors hover:bg-verde-hover disabled:opacity-50"
+          >
+            {enviando ? "Enviando…" : "Está certo, enviar"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmando(false)}
+            disabled={enviando}
+            className="flex-1 rounded-full border border-black/10 px-6 py-3 font-display font-bold text-ink disabled:opacity-50"
+          >
+            Corrigir
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
