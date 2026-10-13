@@ -1,4 +1,5 @@
 import { supabase, BUCKET_HERO, publicUrl } from "./supabase";
+import { otimizarImagem, CACHE_CONTROL_LONGO } from "./imagem";
 
 /** Foto do carrossel da Home (tabela `site_hero_imagens`). */
 export interface HeroImagem {
@@ -84,11 +85,16 @@ export async function adicionarHeroImagem(
   const erro = validarImagemHero(file);
   if (erro) throw new Error(erro);
 
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const arquivo = await otimizarImagem(file);
+  const ext = arquivo.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${Date.now()}-${ordem}.${ext}`;
   const up = await supabase.storage
     .from(BUCKET_HERO)
-    .upload(path, file, { upsert: false, contentType: file.type });
+    .upload(path, arquivo, {
+      upsert: false,
+      contentType: arquivo.type,
+      cacheControl: CACHE_CONTROL_LONGO,
+    });
   if (up.error) throw up.error;
 
   const { error } = await supabase.from("site_hero_imagens").insert({

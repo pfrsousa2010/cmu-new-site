@@ -6,3 +6,6 @@ dist-ssr
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
+
+# Backup local do script scripts/otimizar-storage.mjs
+backup-storage/

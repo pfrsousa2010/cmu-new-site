@@ -322,6 +322,8 @@ function CursoCard({
           }
         >
           <img
+            loading="lazy"
+            decoding="async"
             src={img}
             alt={curso.titulo}
             className={

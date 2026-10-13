@@ -76,6 +76,8 @@ export default function Depoimentos() {
               >
                 {poster ? (
                   <img
+                    loading="lazy"
+                    decoding="async"
                     src={poster}
                     alt=""
                     className="w-full transition-transform duration-300 group-hover:scale-[1.03]"
@@ -138,7 +140,7 @@ export default function Depoimentos() {
                   }`}
                 >
                   {capa ? (
-                    <img src={capa} alt="" className="h-full w-full object-cover" />
+                    <img loading="lazy" decoding="async" src={capa} alt="" className="h-full w-full object-cover" />
                   ) : (
                     // Vídeo sem capa: o navegador não conseguiu extrair o quadro.
                     <span className="flex h-full w-full items-center justify-center text-[13px] text-ink-mid">

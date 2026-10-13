@@ -1,4 +1,5 @@
 import { supabase, BUCKET_DEPOIMENTOS, publicUrl } from "./supabase";
+import { otimizarImagem, CACHE_CONTROL_LONGO } from "./imagem";
 
 /**
  * Depoimento exibido na Home (tabela `site_depoimentos`).
@@ -137,12 +138,20 @@ export async function fetchDepoimentosAdmin(): Promise<Depoimento[]> {
 // Escrita
 // ---------------------------------------------------------------------------
 
-async function subirMidia(file: File, prefixo: string): Promise<string> {
+async function subirMidia(original: File, prefixo: string): Promise<string> {
+  // Só imagens são recomprimidas; vídeo (e qualquer outro tipo) passa direto.
+  const file = original.type.startsWith("image/")
+    ? await otimizarImagem(original)
+    : original;
   const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
   const path = `${prefixo}-${Date.now()}.${ext}`;
   const { error } = await supabase.storage
     .from(BUCKET_DEPOIMENTOS)
-    .upload(path, file, { upsert: false, contentType: file.type });
+    .upload(path, file, {
+      upsert: false,
+      contentType: file.type,
+      cacheControl: CACHE_CONTROL_LONGO,
+    });
   if (error) throw error;
   return path;
 }

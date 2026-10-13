@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Depoimentos from "@/components/Depoimentos";
 import LoadingLogo from "@/components/LoadingLogo";
@@ -44,10 +44,25 @@ function fotosDe(imagens: HeroImagem[]): HeroFoto[] {
   }));
 }
 
+/** Deslocamento mínimo do dedo, em px, para o toque contar como "passar a foto". */
+const SWIPE_MIN_PX = 40;
+
+/**
+ * Carrossel do hero, só com navegação manual (setas, bolinhas e deslizar).
+ *
+ * Só a primeira foto é baixada ao abrir a página; as outras entram no DOM
+ * quando alguém vai até elas (ou passa o mouse/foca na seta, para a troca já
+ * sair carregada). Antes as 13 `<img>` ficavam sobrepostas com opacidade 0 e o
+ * navegador baixava todas em toda visita: era ~70% do egress do Storage, cota
+ * do plano free. `loading="lazy"` não resolve, porque as fotos ocultas estão
+ * dentro da área visível.
+ */
 function HeroCarousel() {
   const [fotos, setFotos] = useState<HeroFoto[]>(() => fotosDe([]));
   const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
+  /** Índices já montados; uma foto montada continua no DOM para o fade de volta. */
+  const [montadas, setMontadas] = useState<Set<number>>(() => new Set([0]));
+  const toqueX = useRef<number | null>(null);
 
   useEffect(() => {
     let ativo = true;
@@ -55,51 +70,96 @@ function HeroCarousel() {
       if (!ativo) return;
       setFotos(fotosDe(imagens));
       setIndex(0);
+      setMontadas(new Set([0]));
     });
     return () => {
       ativo = false;
     };
   }, []);
 
-  useEffect(() => {
-    if (paused || fotos.length <= 1) return;
-    const id = window.setInterval(() => {
-      setIndex((i) => (i + 1) % fotos.length);
-    }, 4000);
-    return () => window.clearInterval(id);
-  }, [paused, fotos.length]);
+  const total = fotos.length;
+  const posicao = (i: number) => (i + total) % total;
+
+  const montar = (i: number) => {
+    setMontadas((atual) => (atual.has(i) ? atual : new Set(atual).add(i)));
+  };
+
+  const irPara = (i: number) => {
+    const alvo = posicao(i);
+    montar(alvo);
+    setIndex(alvo);
+  };
+
+  const fimDoToque = (x: number) => {
+    if (toqueX.current == null) return;
+    const dx = x - toqueX.current;
+    toqueX.current = null;
+    if (Math.abs(dx) >= SWIPE_MIN_PX) irPara(index + (dx < 0 ? 1 : -1));
+  };
+
+  const seta =
+    "absolute top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-[22px] font-bold leading-none text-ink shadow-[0_2px_10px_rgba(0,0,0,.2)] transition-colors hover:bg-white";
 
   return (
     <div
-      className="relative h-[400px] overflow-hidden rounded-3xl"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
+      className="relative h-[400px] overflow-hidden rounded-3xl bg-subtle"
+      onTouchStart={(e) => {
+        toqueX.current = e.touches[0].clientX;
+      }}
+      onTouchEnd={(e) => fimDoToque(e.changedTouches[0].clientX)}
     >
-      {fotos.map((foto, i) => (
-        <img
-          key={foto.src}
-          src={foto.src}
-          alt={foto.alt}
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out ${
-            i === index ? "opacity-100" : "opacity-0"
-          }`}
-        />
-      ))}
-      <div className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/35 to-transparent" />
-      <div className="absolute left-1/2 top-4 z-10 flex -translate-x-1/2 gap-1.5">
-        {fotos.map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            aria-label={`Ir para foto ${i + 1}`}
-            aria-current={i === index}
-            onClick={() => setIndex(i)}
-            className={`h-2 rounded-full transition-all duration-300 ${
-              i === index ? "w-5 bg-white" : "w-2 bg-white/55 hover:bg-white/80"
+      {fotos.map((foto, i) =>
+        montadas.has(i) ? (
+          <img
+            key={foto.src}
+            src={foto.src}
+            alt={foto.alt}
+            decoding="async"
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out ${
+              i === index ? "opacity-100" : "opacity-0"
             }`}
           />
-        ))}
-      </div>
+        ) : null
+      )}
+      <div className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/35 to-transparent" />
+      {total > 1 && (
+        <>
+          <button
+            type="button"
+            aria-label="Foto anterior"
+            onClick={() => irPara(index - 1)}
+            onPointerEnter={() => montar(posicao(index - 1))}
+            onFocus={() => montar(posicao(index - 1))}
+            className={`${seta} left-3`}
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            aria-label="Próxima foto"
+            onClick={() => irPara(index + 1)}
+            onPointerEnter={() => montar(posicao(index + 1))}
+            onFocus={() => montar(posicao(index + 1))}
+            className={`${seta} right-3`}
+          >
+            ›
+          </button>
+          <div className="absolute left-1/2 top-4 z-10 flex -translate-x-1/2 gap-1.5">
+            {fotos.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-label={`Ir para foto ${i + 1}`}
+                aria-current={i === index}
+                onClick={() => irPara(i)}
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  i === index ? "w-5 bg-white" : "w-2 bg-white/55 hover:bg-white/80"
+                }`}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -273,6 +333,8 @@ export default function Home() {
                       }
                     >
                       <img
+                        loading="lazy"
+                        decoding="async"
                         src={img}
                         alt={c.titulo}
                         className={

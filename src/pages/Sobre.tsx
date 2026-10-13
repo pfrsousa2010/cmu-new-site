@@ -76,6 +76,8 @@ export default function Sobre() {
         </div>
         <figure className="m-0 justify-self-center text-center md:justify-self-end">
           <img
+            loading="lazy"
+            decoding="async"
             src={FUNDADORA_IMG}
             alt="Ignez Vidotti, fundadora"
             className="mx-auto h-[280px] w-[280px] rounded-full object-cover"

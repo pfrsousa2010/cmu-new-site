@@ -164,6 +164,8 @@ export default function Eventos() {
                       }
                     >
                       <img
+                        loading="lazy"
+                        decoding="async"
                         src={capa}
                         alt=""
                         className="block h-[74px] w-[110px] object-cover transition-transform group-hover:scale-[1.03]"
@@ -223,6 +225,8 @@ export default function Eventos() {
                 {capa ? (
                   <div className="relative aspect-[4/3] overflow-hidden bg-subtle">
                     <img
+                      loading="lazy"
+                      decoding="async"
                       src={capa}
                       alt=""
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
@@ -317,7 +321,7 @@ export default function Eventos() {
                       : "border-transparent opacity-70 hover:opacity-100",
                   ].join(" ")}
                 >
-                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <img loading="lazy" decoding="async" src={url} alt="" className="h-full w-full object-cover" />
                 </button>
               ))}
             </div>

@@ -1,4 +1,5 @@
 import { supabase, BUCKET_PARCEIROS, publicUrl } from "./supabase";
+import { CACHE_CONTROL_LONGO } from "./imagem";
 
 /**
  * Logo de parceiro exibido na página /parceiros (tabela `site_parceiros`).
@@ -223,7 +224,11 @@ export async function substituirArquivoParceiro(
 
   const up = await supabase.storage
     .from(BUCKET_PARCEIROS)
-    .upload(path, novo, { upsert: false, contentType: novo.type });
+    .upload(path, novo, {
+      upsert: false,
+      contentType: novo.type,
+      cacheControl: CACHE_CONTROL_LONGO,
+    });
   if (up.error) throw up.error;
 
   const { error } = await supabase
@@ -290,7 +295,11 @@ export async function adicionarParceiro(
   const path = `${Date.now()}-${ordem}.${ext}`;
   const up = await supabase.storage
     .from(BUCKET_PARCEIROS)
-    .upload(path, arquivo, { upsert: false, contentType: arquivo.type });
+    .upload(path, arquivo, {
+    upsert: false,
+    contentType: arquivo.type,
+    cacheControl: CACHE_CONTROL_LONGO,
+  });
   if (up.error) throw up.error;
 
   const { error } = await supabase.from("site_parceiros").insert({

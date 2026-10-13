@@ -1,4 +1,5 @@
 import { supabase, BUCKET_ALBUNS, publicUrl } from "./supabase";
+import { otimizarImagem, CACHE_CONTROL_LONGO } from "./imagem";
 
 export interface AlbumFoto {
   id: string;
@@ -116,11 +117,16 @@ export async function adicionarFotoAlbum(
   file: File,
   ordem: number
 ): Promise<void> {
-  const ext = file.name.split(".").pop() || "jpg";
+  const arquivo = await otimizarImagem(file);
+  const ext = arquivo.name.split(".").pop() || "jpg";
   const path = `${albumId}/${Date.now()}-${ordem}.${ext}`;
   const up = await supabase.storage
     .from(BUCKET_ALBUNS)
-    .upload(path, file, { upsert: false });
+    .upload(path, arquivo, {
+      upsert: false,
+      contentType: arquivo.type,
+      cacheControl: CACHE_CONTROL_LONGO,
+    });
   if (up.error) throw up.error;
 
   const { error } = await supabase.from("site_album_fotos").insert({

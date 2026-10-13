@@ -64,6 +64,8 @@ export default function Doar() {
           <div className="mb-4 font-display text-[22px] font-extrabold">PIX</div>
           <div className="mb-4 rounded-2xl bg-site-bg p-[18px] text-center">
             <img
+              loading="lazy"
+              decoding="async"
               src="/pix-qrcode.png"
               alt="QR code do PIX do Clube das Mães Unidas"
               width={350}

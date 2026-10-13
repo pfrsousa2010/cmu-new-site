@@ -1,4 +1,5 @@
 import { supabase, BUCKET_EVENTOS, publicUrl } from "./supabase";
+import { otimizarImagem, CACHE_CONTROL_LONGO } from "./imagem";
 
 export interface EventoFoto {
   id: string;
@@ -161,11 +162,16 @@ export async function adicionarFoto(
   file: File,
   ordem: number
 ): Promise<void> {
-  const ext = file.name.split(".").pop() || "jpg";
+  const arquivo = await otimizarImagem(file);
+  const ext = arquivo.name.split(".").pop() || "jpg";
   const path = `${eventoId}/${Date.now()}-${ordem}.${ext}`;
   const up = await supabase.storage
     .from(BUCKET_EVENTOS)
-    .upload(path, file, { upsert: false });
+    .upload(path, arquivo, {
+      upsert: false,
+      contentType: arquivo.type,
+      cacheControl: CACHE_CONTROL_LONGO,
+    });
   if (up.error) throw up.error;
 
   const { error } = await supabase

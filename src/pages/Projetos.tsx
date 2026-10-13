@@ -99,6 +99,8 @@ export default function Projetos() {
           </div>
         </div>
         <img
+          loading="lazy"
+          decoding="async"
           src={FOTO_CAPACITACAO}
           alt="Alunas em atividade no Clube das Mães Unidas"
           className="h-[380px] w-full rounded-[20px] object-cover"
@@ -107,6 +109,8 @@ export default function Projetos() {
 
       <section className="mt-16 grid grid-cols-1 items-center gap-10 md:grid-cols-2">
         <img
+          loading="lazy"
+          decoding="async"
           src={FOTO_EDUCADORES}
           alt="Educadores do Clube das Mães Unidas"
           className="order-2 h-[380px] w-full rounded-[20px] object-cover md:order-1"
