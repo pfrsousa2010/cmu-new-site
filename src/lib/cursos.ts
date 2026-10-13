@@ -237,6 +237,9 @@ const normalizarUnidade = (nome: string) =>
  * O nome pode estar cadastrado com ou sem o "E" antes de JOVENS.
  */
 const UNIDADE_SIGLAS: Record<string, string> = {
+  // Nome como está cadastrado hoje na tabela `unidades`
+  "CENTRO DE PROFISSIONALIZACAO PARA ADOLESCENTES E JOVENS": "CPAJ",
+  "CENTRO DE PROFISSIONALIZACAO PARA ADOLESCENTES JOVENS": "CPAJ",
   "CENTRO DE PROFISSIONALIZACAO DE ADOLESCENTES JOVENS": "CPAJ",
   "CENTRO DE PROFISSIONALIZACAO DE ADOLESCENTES E JOVENS": "CPAJ",
 };
