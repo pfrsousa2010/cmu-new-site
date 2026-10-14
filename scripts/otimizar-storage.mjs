@@ -11,6 +11,9 @@
 //   node scripts/otimizar-storage.mjs --aplicar                # troca de verdade
 //
 // Opções: --min-kb=300 (só mexe em arquivos maiores que isso)
+//         --max-lado=1600 (maior lado, em px; capas de curso aparecem em ~380 px, 800 basta)
+//         --cache-tudo (arquivos que não compensam recomprimir sobem de novo, iguais,
+//                       só para trocar o Cache-Control antigo de 1 h pelo de 1 ano)
 //         --bucket=site-hero (limita a um bucket; pode repetir)
 //
 // Como troca com segurança:
@@ -24,7 +27,7 @@
 // Os logos (site-parceiros) ficam de fora: já passam por recorte próprio.
 
 import { createClient } from "@supabase/supabase-js";
-import { mkdir, writeFile } from "node:fs/promises";
+import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const args = process.argv.slice(2);
@@ -34,7 +37,9 @@ const soBuckets = args.filter((a) => a.startsWith("--bucket=")).map((a) => a.spl
 const BUCKETS = (soBuckets.length
   ? soBuckets
   : ["site-cursos", "site-eventos", "site-albuns", "site-hero", "site-depoimentos"]);
-const MAX_LADO = 1600;
+const MAX_LADO = Number(args.find((a) => a.startsWith("--max-lado="))?.split("=")[1] ?? 1600);
+const cacheTudo = args.includes("--cache-tudo");
+const CACHE_1_ANO = "max-age=31536000";
 const ECONOMIA_MINIMA = 0.3;
 
 const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "https://qnbrmgwlopirujzcgziu.supabase.co";
@@ -63,7 +68,7 @@ async function listarTudo(bucket, prefixo = "") {
     for (const item of data) {
       const caminho = prefixo ? `${prefixo}/${item.name}` : item.name;
       if (item.id === null) arquivos.push(...(await listarTudo(bucket, caminho)));
-      else arquivos.push({ caminho, tamanho: item.metadata?.size ?? 0 });
+      else arquivos.push({ caminho, tamanho: item.metadata?.size ?? 0, cache: item.metadata?.cacheControl ?? "" });
     }
     if (data.length < 1000) break;
   }
@@ -92,11 +97,12 @@ const mb = (n) => (n / 1024 / 1024).toFixed(2) + " MB";
 let totalAntes = 0;
 let totalDepois = 0;
 let trocados = 0;
+let cacheTrocado = 0;
 
 for (const bucket of BUCKETS) {
   console.log(`\n== ${bucket}`);
   const arquivos = await listarTudo(bucket);
-  for (const { caminho, tamanho } of arquivos) {
+  for (const { caminho, tamanho, cache } of arquivos) {
     const f = formatoDe(caminho);
     if (!f || tamanho < minKb * 1024) continue;
 
@@ -105,7 +111,20 @@ for (const bucket of BUCKETS) {
     const original = Buffer.from(await blob.arrayBuffer());
     const novo = await recomprimir(original, f.fmt);
     const economia = 1 - novo.length / original.length;
-    if (economia < ECONOMIA_MINIMA) continue;
+    if (economia < ECONOMIA_MINIMA) {
+      // Não vale recomprimir, mas o cache curto continua custando downloads repetidos.
+      if (cacheTudo && cache !== CACHE_1_ANO) {
+        cacheTrocado++;
+        console.log(`  ${aplicar ? "CACHE" : "cache?"} ${caminho}  (${cache || "sem cache"} → 1 ano, arquivo igual)`);
+        if (aplicar) {
+          const { error: erroCache } = await supabase.storage
+            .from(bucket)
+            .upload(caminho, original, { upsert: true, contentType: f.mime, cacheControl: "31536000" });
+          if (erroCache) console.warn(`  ! falha ao subir ${caminho}: ${erroCache.message}`);
+        }
+      }
+      continue;
+    }
 
     totalAntes += original.length;
     totalDepois += novo.length;
@@ -115,7 +134,10 @@ for (const bucket of BUCKETS) {
     if (!aplicar) continue;
     const destino = path.join("backup-storage", bucket, caminho);
     await mkdir(path.dirname(destino), { recursive: true });
-    await writeFile(destino, original);
+    // Só guarda o backup se ainda não existe: numa segunda rodada o arquivo do bucket já é a
+    // versão comprimida, e sobrescrever perderia o original de verdade.
+    const jaTemBackup = await access(destino).then(() => true, () => false);
+    if (!jaTemBackup) await writeFile(destino, original);
     const { error: erroUp } = await supabase.storage
       .from(bucket)
       .upload(caminho, novo, { upsert: true, contentType: f.mime, cacheControl: "31536000" });
@@ -124,4 +146,5 @@ for (const bucket of BUCKETS) {
 }
 
 console.log(`\n${trocados} arquivo(s) ${aplicar ? "trocado(s)" : "seriam trocados"}: ${mb(totalAntes)} → ${mb(totalDepois)} (economia ${mb(totalAntes - totalDepois)}).`);
+if (cacheTudo) console.log(`${cacheTrocado} arquivo(s) ${aplicar ? "com cache trocado" : "teriam o cache trocado"} para 1 ano (sem mudar o conteúdo).`);
 if (!aplicar) console.log("Dry-run: nada foi alterado. Rode com --aplicar para trocar (os originais vão para ./backup-storage).");

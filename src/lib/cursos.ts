@@ -1,5 +1,5 @@
 import { supabase, BUCKET_CURSOS, publicUrl } from "./supabase";
-import { otimizarImagem, CACHE_CONTROL_LONGO } from "./imagem";
+import { otimizarImagem, CACHE_CONTROL_LONGO, MAX_LADO_CAPA } from "./imagem";
 import { avaliarDisponibilidade, contarInscritos } from "./inscricoes";
 import {
   COLUNAS_EVENTO,
@@ -957,7 +957,7 @@ export async function setCursoImagem(
     );
   }
 
-  const arquivo = await otimizarImagem(file);
+  const arquivo = await otimizarImagem(file, { maxLado: MAX_LADO_CAPA });
   const ext = arquivo.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${cursoId}/${Date.now()}.${ext}`;
   const up = await supabase.storage

@@ -16,6 +16,12 @@ export const CACHE_CONTROL_LONGO = "31536000";
 /** Maior lado, em pixels, das fotos do site (cobre telas retina em cards e carrossel). */
 export const MAX_LADO_FOTO = 1600;
 
+/**
+ * Capas de curso/oficina: aparecem só em cards de ~380 px de largura (Home e lista de
+ * cursos), então 800 px já cobre telas retina e custa cerca de 1/4 dos bytes de 1600 px.
+ */
+export const MAX_LADO_CAPA = 800;
+
 const TIPOS_OTIMIZAVEIS = ["image/jpeg", "image/png", "image/webp"];
 
 interface OpcoesOtimizar {
