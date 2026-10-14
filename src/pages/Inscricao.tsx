@@ -114,8 +114,12 @@ export default function Inscricao() {
   const [participouOutrosCursos, setParticipouOutrosCursos] = useState<
     boolean | null
   >(null);
+  // Vale-transporte: só perguntado em curso do CPAJ (aulas na unidade). Espelha o SGE.
+  const [precisaVt, setPrecisaVt] = useState<boolean | null>(null);
+  const [possuiCartaoVt, setPossuiCartaoVt] = useState<boolean | null>(null);
   const [comoSoube, setComoSoube] = useState("");
   const [comoSoubeOutro, setComoSoubeOutro] = useState("");
+  const pedeVt = unidadeAtendePorContato(curso?.localAula?.nome);
   const [isMenor, setIsMenor] = useState(false);
   const [responsavelNome, setResponsavelNome] = useState("");
   const [responsavelCpf, setResponsavelCpf] = useState("");
@@ -188,6 +192,8 @@ export default function Inscricao() {
     setProfissao("");
     setEstaTrabalhando(null);
     setParticipouOutrosCursos(null);
+    setPrecisaVt(null);
+    setPossuiCartaoVt(null);
     setComoSoube("");
     setComoSoubeOutro("");
     setIsMenor(false);
@@ -330,6 +336,12 @@ export default function Inscricao() {
     if (participouOutrosCursos === null) {
       return "Informe se você já participou de outros cursos no Clube das Mães Unidas.";
     }
+    if (pedeVt && precisaVt === null) {
+      return "Informe se você precisa de vale-transporte.";
+    }
+    if (pedeVt && possuiCartaoVt === null) {
+      return "Informe se você possui cartão transporte.";
+    }
     if (!comoSoube) return `Informe como você soube ${DO_TIPO[tipo]}.`;
     if (comoSoube === "Outro" && !comoSoubeOutro.trim()) {
       return `Descreva como você soube ${DO_TIPO[tipo]}.`;
@@ -407,6 +419,8 @@ export default function Inscricao() {
       profissao,
       estaTrabalhando,
       participouOutrosCursos,
+      precisaVt: pedeVt ? precisaVt : null,
+      possuiCartaoVt: pedeVt ? possuiCartaoVt : null,
       comoSoube,
       comoSoubeOutro,
     };
@@ -901,6 +915,34 @@ export default function Inscricao() {
                   onChange={setParticipouOutrosCursos}
                 />
               </Campo>
+              {pedeVt && (
+                <>
+                  <Campo
+                    id="precisa-vt"
+                    label="Precisa de vale-transporte?"
+                    obrigatorio
+                    grupo
+                  >
+                    <SimNao
+                      id="precisa-vt"
+                      valor={precisaVt}
+                      onChange={setPrecisaVt}
+                    />
+                  </Campo>
+                  <Campo
+                    id="possui-cartao-vt"
+                    label="Possui cartão transporte?"
+                    obrigatorio
+                    grupo
+                  >
+                    <SimNao
+                      id="possui-cartao-vt"
+                      valor={possuiCartaoVt}
+                      onChange={setPossuiCartaoVt}
+                    />
+                  </Campo>
+                </>
+              )}
               <Campo
                 id="como-soube"
                 label={`Como você soube ${DO_TIPO[tipo]}?`}

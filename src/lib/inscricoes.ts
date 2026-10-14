@@ -420,6 +420,9 @@ export interface DadosInscricao {
   profissao: string;
   estaTrabalhando: boolean | null;
   participouOutrosCursos: boolean | null;
+  /** Só em curso do CPAJ; null nas demais unidades. */
+  precisaVt: boolean | null;
+  possuiCartaoVt: boolean | null;
   comoSoube: string;
   comoSoubeOutro: string;
 }
@@ -496,6 +499,8 @@ export async function criarInscricao(
     profissao: dados.profissao.trim() || null,
     esta_trabalhando: dados.estaTrabalhando,
     participou_outros_cursos: dados.participouOutrosCursos,
+    usa_vale_transporte: dados.precisaVt,
+    possui_cartao_transporte: dados.possuiCartaoVt,
     como_soube_curso: juntarOpcaoOutro(dados.comoSoube, dados.comoSoubeOutro),
     status: (listaEspera ? "lista_espera" : "inscrito") satisfies StatusInscricao,
     origem: ORIGEM_SITE,
