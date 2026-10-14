@@ -59,6 +59,7 @@ export const COMO_SOUBE_OPCOES = [
   "Amigo",
   "CRAS",
   "CREAS",
+  "Serviço de Convivência",
   "Jornal",
   "Programa de Rádio",
   "Programa de TV",
